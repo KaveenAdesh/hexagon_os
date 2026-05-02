@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonOS | Nexus Code Pro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@300;400;600&display=swap');
+
+        :root {
+            --bg: #1e1e1e;
+            --sidebar: #252526;
+            --activity-bar: #333333;
+            --accent: #007acc;
+            --text: #cccccc;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+
+        /* Activity Bar */
+        .activity-bar { width: 50px; background: var(--activity-bar); display: flex; flex-direction: column; align-items: center; padding-top: 15px; border-right: 1px solid var(--border); }
+        .act-icon { width: 50px; height: 50px; opacity: 0.5; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .act-icon:hover, .act-icon.active { opacity: 1; border-left: 2px solid var(--accent); color: white; }
+
+        /* Sidebar / Explorer */
+        .side-panel { width: 220px; background: var(--sidebar); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+        .panel-header { padding: 10px 20px; font-size: 11px; font-weight: bold; color: #888; text-transform: uppercase; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+        .explorer-item { padding: 8px 20px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s; }
+        .explorer-item:hover { background: #2a2d2e; }
+        .explorer-item.active { background: #37373d; color: white; border-left: 2px solid var(--accent); }
+
+        /* Main Editor Area */
+        .editor-container { flex: 1; display: flex; flex-direction: column; }
+        
+        .tab-bar { height: 35px; background: #252526; display: flex; align-items: center; }
+        .tab { height: 100%; padding: 0 15px; display: flex; align-items: center; background: #2d2d2d; font-size: 12px; border-right: 1px solid #1e1e1e; min-width: 120px; color: #969696; }
+        .tab.active { background: var(--bg); color: white; border-top: 1px solid var(--accent); }
+
+        .editor-surface { flex: 1; position: relative; display: flex; overflow: hidden; }
+        .line-numbers { width: 50px; background: var(--bg); color: #858585; text-align: right; padding: 15px 10px 0 0; font-family: 'Fira Code', monospace; font-size: 14px; user-select: none; border-right: 1px solid var(--border); }
+        textarea { flex: 1; background: transparent; border: none; outline: none; color: #d4d4d4; font-family: 'Fira Code', monospace; font-size: 14px; padding: 15px; resize: none; line-height: 1.5; white-space: pre; }
+
+        /* Overlay */
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .dialog { background: #252526; width: 450px; padding: 25px; border-radius: 4px; border: 1px solid var(--accent); }
+        .folder-list { max-height: 250px; overflow-y: auto; background: #1e1e1e; border: 1px solid var(--border); margin: 15px 0; }
+        .folder-opt { padding: 12px; cursor: pointer; font-size: 13px; border-bottom: 1px solid var(--border); }
+        .folder-opt:hover { background: var(--accent); }
+        .folder-opt.selected { background: rgba(0, 122, 204, 0.3); border-left: 4px solid var(--accent); }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        .btn { flex: 1; padding: 12px; border: none; cursor: pointer; font-weight: 600; font-size: 13px; border-radius: 2px; }
+        .btn-save { background: var(--accent); color: white; }
+        .btn-cancel { background: #444; color: white; }
+
+        footer { height: 22px; background: var(--accent); color: white; display: flex; align-items: center; padding: 0 15px; font-size: 11px; }
+        #notif { position: fixed; bottom: 30px; right: 20px; background: #333; color: white; padding: 12px 25px; border-left: 4px solid #4ec9b0; transform: translateX(150%); transition: 0.4s; z-index: 200; }
+    </style>
+</head>
+<body>
+
+    <div class="activity-bar">
+        <div class="act-icon active" title="Explorer">📄</div>
+        <div class="act-icon" onclick="openFolderPicker()" title="Open Folder">📁</div>
+        <div class="act-icon" onclick="triggerSave()" title="Save">💾</div>
+    </div>
+
+    <div class="side-panel">
+        <div class="panel-header" id="explorer-title">Explorer</div>
+        <div id="explorer-files"></div>
+    </div>
+
+    <div class="editor-container">
+        <div class="tab-bar">
+            <div class="tab active" id="tab-title">untitled.txt</div>
+        </div>
+        
+        <div class="editor-surface">
+            <div class="line-numbers" id="line-nums">1</div>
+            <textarea id="code-editor" spellcheck="false" placeholder="// Nexus Code Pro"></textarea>
+        </div>
+
+        <footer>
+            <div id="status-text">Ready</div>
+        </footer>
+    </div>
+
+    <div class="overlay" id="folder-overlay">
+        <div class="dialog">
+            <h3 id="dialog-title">Select Workspace Folder</h3>
+            <div class="folder-list" id="folder-picker-list"></div>
+            <div id="save-filename-container" style="display:none">
+                <input type="text" id="save-filename" style="width:100%; padding:10px; background:#3c3c3c; border:none; color:white;" placeholder="filename.txt">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-cancel" onclick="hideOverlay()">Cancel</button>
+                <button class="btn btn-save" id="dialog-confirm-btn">Open Folder</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notif">Action Completed</div>
+
+    <script>
+        const editor = document.getElementById('code-editor');
+        const lineNums = document.getElementById('line-nums');
+        let currentFile = { name: 'untitled.txt', folder: null };
+        let tempSelectedFolder = null;
+
+        // --- System Communication ---
+        window.addEventListener('message', (e) => {
+            if (e.data.type === 'DELIVER_FILE_CONTENT') {
+                editor.value = e.data.content || "";
+                // FIX: Correctly mapping the folder name from kernel response
+                currentFile = { 
+                    name: e.data.fileName, 
+                    folder: e.data.folderName || e.data.folder 
+                };
+                updateUI();
+                loadExplorer(currentFile.folder);
+            }
+        });
+
+        // Initialize State 1 via URL Params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('openedFile')) {
+            const f = params.get('openedFile');
+            const d = params.get('openedFolder');
+            currentFile = { name: f, folder: d };
+            window.parent.postMessage({ type: 'REQUEST_FILE_CONTENT', file: f, folder: d }, '*');
+        }
+
+        // --- Folder Logic ---
+        function openFolderPicker() {
+            showOverlay("Select Workspace Folder", false);
+            document.getElementById('dialog-confirm-btn').onclick = () => {
+                if (!tempSelectedFolder) return alert("Select a folder first");
+                loadExplorer(tempSelectedFolder);
+                hideOverlay();
+            };
+        }
+
+        function triggerSave() {
+            if (currentFile.folder) {
+                saveData(currentFile.folder, currentFile.name, editor.value);
+            } else {
+                showOverlay("Save File As", true);
+                document.getElementById('dialog-confirm-btn').onclick = () => {
+                    const name = document.getElementById('save-filename').value;
+                    if (!tempSelectedFolder || !name) return alert("Details missing");
+                    saveData(tempSelectedFolder, name, editor.value);
+                    currentFile = { name: name, folder: tempSelectedFolder };
+                    updateUI();
+                    loadExplorer(tempSelectedFolder);
+                    hideOverlay();
+                };
+            }
+        }
+
+        function loadExplorer(folderName) {
+            const container = document.getElementById('explorer-files');
+            container.innerHTML = '';
+            document.getElementById('explorer-title').innerText = folderName.toUpperCase();
+            
+            const files = JSON.parse(localStorage.getItem(folderName) || "[]");
+            files.forEach(f => {
+                const item = document.createElement('div');
+                item.className = `explorer-item ${f.name === currentFile.name ? 'active' : ''}`;
+                item.innerHTML = `<span>📄</span> ${f.name}`;
+                item.onclick = () => {
+                    editor.value = f.content;
+                    currentFile = { name: f.name, folder: folderName };
+                    updateUI();
+                    loadExplorer(folderName);
+                };
+                container.appendChild(item);
+            });
+        }
+
+        function saveData(folder, filename, content) {
+            let files = JSON.parse(localStorage.getItem(folder) || "[]");
+            const idx = files.findIndex(f => f.name === filename);
+            const fileObj = { name: filename, type: filename.split('.').pop(), content: content };
+
+            if (idx > -1) files[idx] = fileObj;
+            else files.push(fileObj);
+
+            localStorage.setItem(folder, JSON.stringify(files));
+            showNotification(`Saved: ${filename}`);
+        }
+
+        // --- UI Utils ---
+        function showOverlay(title, showInput) {
+            document.getElementById('dialog-title').innerText = title;
+            document.getElementById('save-filename-container').style.display = showInput ? 'block' : 'none';
+            const list = document.getElementById('folder-picker-list');
+            list.innerHTML = '';
+            
+            const storage = JSON.parse(localStorage.getItem('system-storage') || "[]");
+            function walk(data) {
+                data.forEach(obj => {
+                    const key = Object.keys(obj)[0];
+                    const div = document.createElement('div');
+                    div.className = 'folder-opt';
+                    div.innerText = `📁 ${key}`;
+                    div.onclick = () => {
+                        document.querySelectorAll('.folder-opt').forEach(el => el.classList.remove('selected'));
+                        div.classList.add('selected');
+                        tempSelectedFolder = key;
+                    };
+                    list.appendChild(div);
+                    if (obj[key].length > 0) walk(obj[key]);
+                });
+            }
+            walk(storage);
+            document.getElementById('folder-overlay').style.display = 'flex';
+        }
+
+        function hideOverlay() { document.getElementById('folder-overlay').style.display = 'none'; }
+
+        function updateUI() {
+            document.getElementById('tab-title').innerText = currentFile.name;
+            document.getElementById('status-text').innerText = `Ln 1, Col 1 | ${currentFile.name}`;
+            updateLineNumbers();
+        }
+
+        function updateLineNumbers() {
+            const count = editor.value.split('\n').length;
+            lineNums.innerHTML = Array.from({length: count}, (_, i) => i + 1).join('<br>');
+        }
+
+        function showNotification(msg) {
+            const n = document.getElementById('notif');
+            n.innerText = msg;
+            n.style.transform = "translateX(0)";
+            setTimeout(() => n.style.transform = "translateX(150%)", 2500);
+        }
+
+        editor.addEventListener('input', updateLineNumbers);
+        editor.addEventListener('scroll', () => lineNums.scrollTop = editor.scrollTop);
+
+        window.onload = updateLineNumbers;
+    </script>
+</body>
+</html>

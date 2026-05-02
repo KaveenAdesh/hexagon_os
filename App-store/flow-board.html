@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexagon Flow</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050508;
+            --surface: rgba(255, 255, 255, 0.03);
+            --accent: #00d2ff;
+            --border: rgba(255, 255, 255, 0.08);
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            margin: 0; padding: 30px;
+            background: var(--bg); color: #fff;
+            font-family: 'Nunito', sans-serif;
+            overflow-x: auto; display: flex; flex-direction: column;
+        }
+
+        .header { margin-bottom: 30px; }
+        .header h1 { font-size: 24px; font-weight: 800; margin: 0; color: var(--accent); }
+        .header p { font-size: 13px; color: var(--text-dim); margin: 5px 0 0 0; }
+
+        .board { display: flex; gap: 20px; align-items: flex-start; flex: 1; }
+
+        .column {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 300px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+
+        .col-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .col-title { font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+
+        .card-list { padding: 15px; overflow-y: auto; flex: 1; min-height: 100px; }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            cursor: grab;
+            transition: 0.2s;
+        }
+
+        .card:hover { border-color: var(--accent); transform: translateY(-2px); background: rgba(0, 210, 255, 0.05); }
+        .card h3 { margin: 0; font-size: 14px; margin-bottom: 8px; }
+        .card p { margin: 0; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+
+        .add-btn {
+            background: transparent; border: 1px dashed var(--border);
+            color: var(--text-dim); padding: 10px; border-radius: 10px;
+            margin: 0 15px 15px 15px; cursor: pointer; transition: 0.3s;
+            font-size: 12px; font-weight: 700;
+        }
+
+        .add-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0, 210, 255, 0.05); }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Flow Board</h1>
+        <p>Manage your OS development tasks and project milestones.</p>
+    </div>
+
+    <div class="board" id="board">
+        </div>
+
+<script>
+    // 1. Storage Logic (Using your Flat-Map Architecture)
+    // Map: system-storage -> { "flow-data": ["todo", "doing", "done"] }
+    // Folders: localStorage["todo"], localStorage["doing"], etc.
+
+    const columns = ["todo", "doing", "done"];
+    const storageKey = "flow-data";
+
+    function initStorage() {
+        let map = JSON.parse(localStorage.getItem("system-storage")) || {};
+        if (!map[storageKey]) {
+            map[storageKey] = columns;
+            localStorage.setItem("system-storage", JSON.stringify(map));
+            
+            // Initialize the flat keys for each column
+            columns.forEach(col => {
+                if (!localStorage.getItem(col)) {
+                    localStorage.setItem(col, JSON.stringify([]));
+                }
+            });
+        }
+        renderBoard();
+    }
+
+    function renderBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = "";
+
+        columns.forEach(col => {
+            const cards = JSON.parse(localStorage.getItem(col)) || [];
+            const colEl = document.createElement('div');
+            colEl.className = 'column';
+            colEl.innerHTML = `
+                <div class="col-header">
+                    <span class="col-title">${col}</span>
+                    <span style="opacity:0.3; font-size:12px;">${cards.length}</span>
+                </div>
+                <div class="card-list" id="list-${col}"></div>
+                <button class="add-btn" onclick="addCard('${col}')">+ New Task</button>
+            `;
+            board.appendChild(colEl);
+
+            const listEl = document.getElementById(`list-${col}`);
+            cards.forEach((card, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card';
+                cardEl.innerHTML = `
+                    <h3>${card.title}</h3>
+                    <p>${card.desc}</p>
+                    <div style="margin-top:10px; display:flex; gap:5px;">
+                         <button onclick="deleteCard('${col}', ${index})" style="background:none; border:none; color:#ff4d4d; font-size:10px; cursor:pointer; padding:0;">Delete</button>
+                    </div>
+                `;
+                listEl.appendChild(cardEl);
+            });
+        });
+    }
+
+    function addCard(col) {
+        const title = prompt("Task Title:");
+        if (!title) return;
+        const desc = prompt("Description:");
+
+        let cards = JSON.parse(localStorage.getItem(col)) || [];
+        cards.push({ title, desc: desc || "" });
+        localStorage.setItem(col, JSON.stringify(cards));
+        
+        // Notify the system
+        window.parent.postMessage({
+            type: 'PUSH_NOTIF',
+            title: 'Flow Update',
+            message: `New task added to ${col}`,
+            icon: 'https://cdn-icons-png.flaticon.com/128/1632/1632670.png'
+        }, '*');
+
+        renderBoard();
+    }
+
+    function deleteCard(col, index) {
+        let cards = JSON.parse(localStorage.getItem(col));
+        cards.splice(index, 1);
+        localStorage.setItem(col, JSON.stringify(cards));
+        renderBoard();
+    }
+
+    initStorage();
+</script>
+</body>
+</html>

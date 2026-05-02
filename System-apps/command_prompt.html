@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hexagon Terminal</title>
+    <style>
+        :root {
+            --bg: rgba(5, 5, 8, 0.6);
+            --accent: #00d2ff;
+            --danger: #ff4a4a;
+            --success: #00ff9d;
+            --dim: #5c6370;
+        }
+
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: transparent; font-family: 'Fira Code', monospace;
+            overflow: hidden; color: #fff;
+            backdrop-filter: blur(10px);
+        }
+
+        .terminal {
+            display: flex; flex-direction: column; height: 100vh;
+            background: var(--bg); backdrop-filter: blur(20px);
+            padding: 15px; box-sizing: border-box;
+            border: 1px solid rgba(255,255,255,0.05);
+            animation: windowOpen 0.35s cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+        }
+
+        @keyframes windowOpen {
+            0% { transform: scale(0.98) translateY(10px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+
+        #output {
+            flex-grow: 1; overflow-y: auto; font-size: 13px;
+            line-height: 1.5; margin-bottom: 10px; scrollbar-width: none;
+        }
+
+        .input-area { display: flex; gap: 8px; align-items: center; }
+        .prompt-user { color: var(--accent); }
+        .prompt-path { color: var(--success); }
+
+        #cmd-in {
+            background: transparent; border: none; color: #fff;
+            outline: none; flex-grow: 1; font-family: inherit; font-size: 13px;
+        }
+
+        .dir-item { color: var(--accent); font-weight: bold; margin-right: 15px; }
+        .file-item { color: #fff; margin-right: 15px; }
+    </style>
+</head>
+<body>
+    <div class="terminal">
+        <div id="output">Hexagon Kernel v1.0.5v | Root Access Granted</div>
+        <div class="input-area">
+            <span class="prompt-user">root@Hexagon</span><span id="path" class="prompt-path">/~</span>
+            <input type="text" id="cmd-in" autofocus spellcheck="false">
+        </div>
+    </div>
+
+    <script type="module">
+        const output = document.getElementById('output');
+        const input = document.getElementById('cmd-in');
+        const pathEl = document.getElementById('path');
+
+        let currentFolder = "root"; // Internal track for navigation
+
+        const commands = {
+            'help': () => `SYSTEM COMMANDS:
+  ls              - List folders & files
+  mkdir [name]    - Create new folder in system-storage
+  touch [name]    - Create empty file in current folder
+  rm [name]       - Delete file or folder
+  ps              - List background services (from background-services-rn)
+  kill [name]     - Terminate a background service
+  neofetch        - System summary
+  clear           - Wipe buffer`,
+
+            'ls': () => {
+                const tree = JSON.parse(localStorage.getItem('system-storage')) || [];
+                const files = JSON.parse(localStorage.getItem(currentFolder)) || [];
+                
+                let res = "";
+                // Folders from tree (simple view)
+                tree.forEach(obj => {
+                    const name = Object.keys(obj)[0];
+                    res += `<span class="dir-item">[DIR] ${name}</span> `;
+                });
+                // Files in current folder
+                files.forEach(f => {
+                    res += `<span class="file-item">${f.name}</span> `;
+                });
+                return res || "Directory is empty.";
+            },
+
+            'mkdir': (args) => {
+                const name = args[0];
+                if(!name) return "Error: Missing folder name.";
+                let tree = JSON.parse(localStorage.getItem('system-storage')) || [];
+                tree.push({ [name]: [] });
+                localStorage.setItem('system-storage', JSON.stringify(tree));
+                return `Directory '${name}' initialized in Kernel.`;
+            },
+
+            'touch': (args) => {
+                const name = args[0];
+                if(!name) return "Error: Missing file name.";
+                let files = JSON.parse(localStorage.getItem(currentFolder)) || [];
+                files.push({ name, type: "txt", content: "" });
+                localStorage.setItem(currentFolder, JSON.stringify(files));
+                return `File '${name}' touched in ${currentFolder}.`;
+            },
+
+            'rm': (args) => {
+                const name = args[0];
+                // Check if it's a file in current folder
+                let files = JSON.parse(localStorage.getItem(currentFolder)) || [];
+                const newFiles = files.filter(f => f.name !== name);
+                if(files.length !== newFiles.length) {
+                    localStorage.setItem(currentFolder, JSON.stringify(newFiles));
+                    return `File '${name}' deleted.`;
+                }
+                return `Target '${name}' not found.`;
+            },
+
+            'ps': () => {
+                const services = JSON.parse(localStorage.getItem('background-services-rn')) || [];
+                if(services.length === 0) return "No background services currently active.";
+                return services.map(s => `[RUNNING] PID: ${Math.floor(Math.random()*9000)} | ${s.name}`).join('\n');
+            },
+
+            'kill': (args) => {
+                const name = args[0];
+                let services = JSON.parse(localStorage.getItem('background-services-rn')) || [];
+                const filtered = services.filter(s => s.name !== name);
+                localStorage.setItem('background-services-rn', JSON.stringify(filtered));
+                return `Service '${name}' sent SIGTERM.`;
+            },
+
+            'neofetch': () => `
+   <span style="color:var(--accent)">     _     </span>  OS: HexagonOS
+   <span style="color:var(--accent)">    / \\    </span>  Kernel: v1.0.5-web
+   <span style="color:var(--accent)">   |   |   </span>  Shell: H-Term Pro
+   <span style="color:var(--accent)">    \\ /    </span>  Storage: ${localStorage.length} keys active
+   <span style="color:var(--accent)">     v     </span>  Status: STABLE
+            `,
+            'clear': () => { output.innerHTML = ''; return ''; }
+        };
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const raw = input.value.trim();
+                const [cmd, ...args] = raw.split(' ');
+                
+                printLine(`<span class="prompt-user">root@Hexagon</span>:${raw}`);
+
+                if (commands[cmd]) {
+                    const res = commands[cmd](args);
+                    if (res) printLine(res);
+                } else if (raw !== '') {
+                    printLine(`<span style="color:var(--danger)">Unknown command: ${cmd}</span>`);
+                }
+
+                input.value = '';
+                output.scrollTop = output.scrollHeight;
+            }
+        });
+
+        function printLine(text) {
+            const div = document.createElement('div');
+            div.innerHTML = text;
+            output.appendChild(div);
+        }
+    </script>
+</body>
+</html>

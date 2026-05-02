@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonOS</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="variable-manager.js" defer></script>
+    <script src="App-store/app-list.js" defer></script>
+    <script src="manage-windows.js" defer></script>
+    <script src="script.js" defer></script>
+    <script src="services.js" defer></script>
+    <link rel="icon" href="System-apps/ico.png">
+    <script src="welcome-overlay.js" defer></script>
+    <script>
+        (function() {
+    const platform = navigator.platform.toLowerCase();
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    // Check for standard desktop OS signatures
+    const isWindows = platform.includes('win') || userAgent.includes('windows');
+    const isMac = platform.includes('mac') || userAgent.includes('macintosh');
+    const isLinux = platform.includes('linux') && !userAgent.includes('android');
+
+    // If any of these are true, redirect to the developer portal
+    if (isWindows || isMac || isLinux) {
+       
+    }else{
+         window.location.href = "help-desk.html";
+    }
+})();
+    </script>
+</head>
+<body onload="closeLoading()">
+    
+<div id="welcome-portal" class="welcome-portal hidden"></div>
+
+
+
+
+
+
+
+
+
+    
+<div id="star-loader" style="
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 8, 0.75);
+    backdrop-filter: blur(12px);
+    z-index: 99999;
+    pointer-events: none;
+">
+    <div class="star-dance">✦</div>
+</div>
+    
+    <div id="desktop">
+        <div id="widget-layer"></div>
+        <div id="icon-area">
+
+
+        </div>
+    </div>
+<div id="start-menu" class="hidden">
+    <div class="start-search">
+        <input type="text" placeholder="Search apps..." id="start-search-input">
+    </div>
+    <div class="start-apps-grid" id="start-menu-grid">
+        </div>
+    <div class="start-footer">
+        <div class="user-profile">
+            <div class="user-avatar"></div>
+            <span>User</span>
+        </div>
+        <button class="power-btn" onclick="window.close()">⏻</button>
+    </div>
+</div>
+<div id="taskbar">
+    <button id="start-btn">✦</button>
+    <div id="running-apps"></div>
+
+    <div class="taskbar-right">
+        <img src="System-apps/no-internet.png" alt="" id="internet" class="internet">
+        <div id="date-time-container">
+            <span id="taskbar-time">00:00</span>
+            <span id="taskbar-date">01/01/2025</span>
+        </div>
+        <button id="notification-btn">
+            <img src="https://img.icons8.com/ios-filled/50/ffffff/appointment-reminders.png" alt="notifications">
+        </button>
+    </div>
+</div>
+
+<div id="toast-container"></div>
+
+<div id="notification-panel" class="hidden">
+    <div class="notif-header">
+        <span>Notification Center</span>
+        <div class="header-controls">
+            <button onclick="clearAllNotifications()" title="Clear All" style="font-size: 12px; margin-right: 10px;">Clear All</button>
+            <button onclick="toggleNotifs()" style="width: 30px;">×</button>
+        </div>
+    </div>
+    <div id="notif-container"></div>
+
+
+</div>
+</div>
+</body>
+</html>

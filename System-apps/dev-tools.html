@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 20px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        h2 { font-size: 1.2rem; margin-top: 0; color: #3498db; }
+        p { font-size: 0.8rem; opacity: 0.8; }
+        textarea {
+            flex-grow: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #00ffcc;
+            padding: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+            resize: none;
+            outline: none;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            transition: 0.3s;
+        }
+        .btn-run { background: #3498db; color: white; }
+        .btn-run:hover { background: #2980b9; transform: translateY(-2px); }
+        .btn-clear { background: rgba(255, 255, 255, 0.1); color: white; }
+    </style>
+</head>
+<body>
+    <h2>App Workshop</h2>
+    <p>Paste your app JSON below to test the spawn logic.</p>
+    
+    <textarea id="json-input" placeholder='{
+    "name": "Test App",
+    "icon": "https://img.icons8.com/ios-filled/50/ffffff/test.png",
+    "url": "https://example.com",
+    "width": "500px",
+    "height": "300px",
+    "resizable": "true",
+    "top": "150px",
+    "left": "200px"
+}'></textarea>
+
+    <div class="controls">
+        <button class="btn-run" onclick="testSpawn()">Launch App</button>
+        <button class="btn-clear" onclick="document.getElementById('json-input').value = ''">Clear</button>
+    </div>
+
+    <script>
+        function testSpawn() {
+            try {
+                const data = JSON.parse(document.getElementById('json-input').value);
+                
+                // We send a message to the parent (Web OS) to trigger the openWindow function
+                window.parent.postMessage({
+                    type: 'SPAWN_APP',
+                    config: data
+                }, '*');
+
+                // Also send a success notification
+                window.parent.postMessage({
+                    type: 'PUSH_NOTIF',
+                    icon: data.icon,
+                    title: 'Workshop',
+                    message: `Attempting to launch ${data.name}...`
+                }, '*');
+
+            } catch (e) {
+                window.parent.postMessage({
+                    type: 'PUSH_NOTIF',
+                    icon: 'https://img.icons8.com/ios-filled/50/ff0000/error.png',
+                    title: 'JSON Error',
+                    message: 'Please check your JSON syntax.'
+                }, '*');
+            }
+        }
+    </script>
+</body>
+</html>

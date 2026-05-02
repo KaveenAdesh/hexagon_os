@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hexagon Pulse</title>
+    <style>
+        :root {
+            --bg: #0a0a0c;
+            --accent: #00f2ff;
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: white;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Using our high-quality animation */
+        .app-entry {
+            animation: windowOpen 0.4s cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
+        }
+
+        @keyframes windowOpen {
+            0% { transform: scale(0.9) translateY(20px); opacity: 0; filter: blur(10px); }
+            100% { transform: scale(1) translateY(0); opacity: 1; filter: blur(0px); }
+        }
+
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--accent);
+        }
+
+        .label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .value { font-size: 1.8rem; font-weight: 300; margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+        .progress-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 15px;
+            border-radius: 2px;
+        }
+
+        .fill {
+            height: 100%;
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Subtle Background Animation */
+        .pulse-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px; height: 100px;
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            opacity: 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { width: 0; height: 0; opacity: 0.5; }
+            100% { width: 300px; height: 300px; opacity: 0; }
+        }
+    </style>
+</head>
+<body class="app-entry">
+    <div class="header">
+        <div style="font-weight: 600;">SYSTEM PULSE</div>
+        <div id="clock" style="color: var(--accent);">00:00:00</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="label">Storage Usage</div>
+            <div class="value" id="storage-val">0 KB</div>
+            <div class="progress-bar"><div id="storage-fill" class="fill" style="width: 0%"></div></div>
+        </div>
+
+        <div class="card">
+            <div class="label">Filesystem Count</div>
+            <div class="value" id="file-count">0</div>
+            <div class="pulse-ring"></div>
+        </div>
+
+        <div class="card" style="grid-column: span 2;">
+            <div class="label">System Health</div>
+            <div class="value" style="color: #4ade80;">OPTIMIZED</div>
+            <div style="font-size: 0.8rem; color: #666; margin-top: 5px;">HexagonOS Kernel v1.0.4 - Running in Isolated Container</div>
+        </div>
+    </div>
+
+    <script>
+        function updateStats() {
+            // 1. Calculate Storage Use
+            let total = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                total += localStorage.getItem(localStorage.key(i)).length;
+            }
+            const kb = (total / 1024).toFixed(2);
+            document.getElementById('storage-val').innerText = `${kb} KB`;
+            
+            // Assuming 5MB limit for localStorage
+            const percent = Math.min((total / (5 * 1024 * 1024)) * 100, 100);
+            document.getElementById('storage-fill').style.width = `${percent}%`;
+
+            // 2. Count Files (Parsing your specific system-storage structure)
+            let files = 0;
+            for (let i = 0; i < localStorage.length; i++) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(localStorage.key(i)));
+                    if (Array.isArray(data)) files += data.length;
+                } catch(e) {}
+            }
+            document.getElementById('file-count').innerText = files;
+
+            // 3. Clock
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }
+
+        setInterval(updateStats, 1000);
+        updateStats();
+    </script>
+</body>
+</html>

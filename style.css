@@ -1,0 +1,732 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Jost:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Orbitron:wght@400..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Tektur:wght@400..900&family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap');
+
+*{
+   font-family: "Nunito", sans-serif;
+   font-weight: bold;
+   
+}
+.window-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 5, 8, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 20;  /* above iframe, below controls if needed */
+    pointer-events: none;
+}
+.star-dance {
+        font-size: 140px;
+        font-weight: bold;
+        color: white;
+        background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 
+            0 0 30px rgba(0, 210, 255, 0.7),
+            0 0 60px rgba(58, 123, 213, 0.5);
+        animation: 
+            rotateJump 2s infinite ease-in-out,
+            spinning 2s infinite linear;
+           
+    }
+
+    @keyframes rotateJump {
+        0%, 100% {
+            margin-top: -150px;
+            
+        }
+
+        50% {
+            margin-top: 0px;
+
+
+        }
+
+        100%{
+            margin-top: -150px;
+
+
+        }
+    }
+
+    @keyframes spinning {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+        
+    }
+
+
+
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+    background-size: cover;
+    transition: 1s;
+    
+}
+
+#desktop {
+    width: 100vw;
+    height: calc(100vh - 40px);
+    position: relative;
+}
+
+/* Window Styling */
+.window {
+    position: absolute;
+    background: var(--window-bg);
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    animation: windowOpen  0.4s cubic-bezier(0.85, 0, 0.15, 1) forwards;
+
+    transform-origin: center bottom; /* Crucial for the Windows 11 feel */
+    will-change: transform, opacity;
+     
+}
+
+.window-header {
+    background: var(--window-bg);
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.window-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 17px;
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.window-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.window-content {
+    
+    flex-grow: 1;
+}
+
+/* Taskbar Styling */
+#taskbar {
+    position: fixed;
+    bottom: 2px; /* Lifts it slightly from the edge */
+    left: 50%;
+    transform: translateX(-50%); /* This perfectly centers it */
+    width: 90%;
+    height: 45px; /* Slightly taller for a better look */
+    background: rgba(55, 55, 55, 0.4); /* Ethereal blur effect */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px; /* Soft, rounded corners */
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    z-index: 9999;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    
+}
+#start-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 29px;
+    margin-right: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+    
+}
+
+
+#start-btn:hover{
+    background-image: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+    /* This clips the background to the text */
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    /* This makes the actual text color transparent so the gradient shows through */
+    color: transparent;
+    
+    display: inline-block; /* Helps ensure the gradient renders correctly */
+    font-weight: bold;
+   rotate: calc(90deg);
+ 
+}
+
+.taskbar-item {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid #3498db;
+    padding: 5px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.taskbar-item img {
+    width: 25px;
+}
+
+.window-close-btn,.window-minimize-btn,.window-resize-btn,.window-resize-btn-not{
+    background: transparent;
+    border: none;
+    color: black;
+    width: 40px;
+    height: 25px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: 0.3s;
+    font-weight: bold;    
+}
+
+.window-close-btn:hover{
+    box-shadow: 0 0 10px red;
+    background-color: red;
+    color: white;
+}
+
+.window-minimize-btn:hover,.window-resize-btn:hover{
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+}
+
+#running-apps{
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    
+}
+@keyframes windowOpen {
+  0% {
+    /* Start slightly 'behind' the plane and smaller */
+    transform: scale(0.92) translateZ(-50px) translateY(20px);
+    opacity: 0;
+  }
+  /* The "Catch": Fast growth that eases into place */
+  100% {
+    transform: scale(1) translateZ(0) translateY(0);
+    opacity: 1;
+  }
+}
+/* Recommendation: 0.5s cubic-bezier(0.16, 1, 0.3, 1) */
+
+@keyframes windowClose {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  /* The "Dismiss": A quick, sharp drop-off */
+  100% {
+    transform: scale(0.96) translateY(15px);
+    opacity: 0;
+  }
+}
+/* Recommendation: 0.3s cubic-bezier(0.7, 0, 0.84, 0) */
+@keyframes minimizing {
+  0% {
+    transform: scale(1) translateY(0) skewX(0deg);
+    opacity: 1;
+  }
+  30% {
+    /* Fast initial pull */
+    transform: scale(0.98) translateY(10px) skewX(1deg);
+  }
+  100% {
+    /* The "suck-in" effect */
+    transform: scale(0.1, 0.5) translateY(150px) skewX(5deg);
+    opacity: 0;
+    filter: blur(5px);
+  }
+}
+
+
+@keyframes opening {
+    0% {
+      /* The "suck-in" effect */
+      transform: scale(0.1, 0.5) translateY(150px) skewX(5deg);
+      opacity: 0;
+      filter: blur(5px);
+    }
+    30% {
+      /* Fast initial pull */
+      transform: scale(0.98) translateY(10px) skewX(1deg);
+    }
+  100% {
+    transform: scale(1) translateY(0) skewX(0deg);
+    opacity: 1;
+  }
+}
+
+
+
+/* Recommendation: 0.4s cubic-bezier(0.45, 0, 0.55, 1) */
+#icon-area{
+position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column; /* Icons go top-to-bottom */
+    flex-wrap: wrap;       /* When bottom is reached, start a new column */
+    align-content: flex-start;
+    gap: 10px;             /* Space between icons */
+    pointer-events: none;
+}
+
+.desktop-icon{
+    height: 70px;
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+    transition: 0.3s;
+    pointer-events: auto;
+    border-radius: 10px;
+    padding: 10px;
+    padding-top:20px;
+    text-align: center;
+    color: white;
+    
+    
+   
+
+   
+}
+.desktop-icon img{
+    border-radius: 10px;
+}
+
+
+.desktop-icon:hover{
+background-color: rgba(50,50,50,0.4);
+backdrop-filter: blur(5px);
+cursor: pointer;
+
+
+}
+
+
+.taskbar-item {
+    animation: incoming 0.5s;
+    border-bottom: solid 2px rgb(0,150,250);
+    cursor: pointer;
+    transition: 0.3s;
+
+    
+}
+
+.taskbar-item:hover{
+    background: gray;
+}
+
+
+@keyframes incoming {
+    
+    0% {
+        opacity: 0;
+    }
+
+
+}
+
+@keyframes goingOut {
+    0%{
+        opacity: 1;
+    }
+    100%{
+        opacity: 0;
+    }
+}
+
+
+.taskbar-right {
+    margin-left: auto; /* Pushes everything to the right corner */
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    height: 100%;
+    padding-right: 10px;
+}
+
+#date-time-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 11px;
+    color: white;
+    cursor: default;
+    user-select: none;
+}
+
+#taskbar-time {
+    font-weight: bold;
+    font-size: 13px;
+}
+
+#notification-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+#notification-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#notification-btn img {
+    width: 18px;
+    height: 18px;
+}
+
+#notification-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 70px; /* Sits above your floating taskbar */
+    width: 320px;
+    max-height: 400px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    z-index: 10000;
+}
+
+#notification-panel.hidden {
+    transform: translateX(350px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.notif-header {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.notif-header button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+#notif-container {
+    padding: 10px;
+    overflow-y: auto;
+}
+
+.notif-card {
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.notif-card img {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.notif-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.notif-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.notif-message {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Container for the 5-second pop-ups */
+#toast-container {
+    position: fixed;
+    bottom: 50px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 10001;
+    pointer-events: none;
+}
+
+/* The pop-up style */
+.toast-card {
+    width: 300px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(15px);
+    border-left: 4px solid #3498db;
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+    animation: slideFromLeft 0.5s ease forwards;
+}
+
+/* Animation to go back to the left */
+.toast-card.fade-out {
+    animation: slideBackLeft 0.5s ease forwards;
+}
+
+@keyframes slideFromLeft {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideBackLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}
+
+/* Style for the 'Clear All' button in the center */
+.header-controls button {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #bdc3c7;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.3s;
+    height: 30px;
+}
+
+.header-controls button:hover {
+    color: white;
+    background: rgba(231, 76, 60, 0.5);
+    
+}
+
+#start-menu {
+    position: fixed;
+    /* Anchoring it near the bottom-left start button */
+    bottom: 75px; 
+    left: 20px; 
+    width: 380px;
+    height: 500px;
+    
+    background: rgba(15, 15, 25, 0.75);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    z-index: 10000;
+    
+    display: flex;
+    flex-direction: column;
+    
+    /* Animation: Starts lower and invisible */
+    opacity: 0;
+    transform: translateY(20px);
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                opacity 0.2s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+#start-menu.active {
+    opacity: 1;
+    transform: translateY(0); /* Slides up into place */
+    pointer-events: auto;
+}
+
+/* Search Bar Container */
+.start-search {
+    padding: 20px;
+    flex-shrink: 0; /* Prevents search from being squished */
+}
+
+#start-search-input {
+    width: 100%;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box; /* Crucial to fix search bar width bugs */
+    transition: border 0.3s ease;
+}
+
+#start-search-input:focus {
+    border-color: #3498db;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* Grid Area - Fixed scrolling */
+.start-apps-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* This tells the grid to make rows only as tall as the content */
+    grid-auto-rows: min-content; 
+    /* This pulls all rows to the top of the container */
+    align-content: start; 
+    gap: 10px; /* Reduced gap to bring items even closer */
+    padding: 10px 15px;
+    overflow-y: auto;
+}
+.start-app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start; /* Aligns content to the top */
+    padding: 12px 5px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    height: fit-content;
+    text-align: center; /* FIX: Prevents the item from stretching vertically */
+}
+
+.start-app-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.start-app-item img {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 8px;
+}
+
+.start-app-item span {
+    font-size: 12px;
+    color: #ecf0f1;
+}
+
+/* Footer Section */
+.start-footer {
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0 0 16px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#start-menu span{
+    color: white;
+}
+#start-menu .user-profile{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+#start-menu .user-avatar{
+    width: 30px;
+    height: 30px;
+    border-radius: 40px;
+    background-image: linear-gradient(60deg,rgb(252, 40, 252),rgb(81, 81, 250));
+}
+
+#start-menu .power-btn{
+    background-color: rgb(0,150,250);
+    border: none;
+    width: 30px;
+    height: 30px;
+    color: white;
+    font-weight: bold;
+    font-size: 15px;
+    border-radius: 30px;
+    cursor: pointer;
+}
+
+
+.taskbar-right .internet{
+    width: 25px;
+}
+
+#widget-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1; /* Sits behind icons which should be z-index: 2 or higher */
+    pointer-events: none; /* Allows clicks to pass through empty space */
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 20px;
+}
+
+.widget {
+    pointer-events: auto; /* Makes the widget itself clickable */
+    background: var(--window-bg); /* Uses our system glass theme */
+    backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 15px;
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    animation: widgetFadeIn 0.5s ease;
+}
+
+@keyframes widgetFadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+

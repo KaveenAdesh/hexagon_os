@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Void • Tasks</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Roboto+Mono:wght@300;400&display=swap">
+    <style>
+        :root {
+            --bg: #0d0d12;
+            --glass: rgba(20,20,35,0.45);
+            --border: rgba(100,100,255,0.18);
+            --text: #e0e0ff;
+            --text-dim: #a0a0cc;
+            --accent: #7b5eff;
+            --high: #ff4d6a;
+            --medium: #ffcc00;
+            --low: #44ff88;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Roboto Mono', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 2.1rem;
+            letter-spacing: 3px;
+            margin-bottom: 1.2rem;
+            background: linear-gradient(90deg, #7b5eff, #00ddeb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        #controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+        input, select, button {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--glass);
+            color: var(--text);
+            font-family: inherit;
+            backdrop-filter: blur(8px);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(123,94,255,0.3);
+        }
+
+        button {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: rgba(123,94,255,0.25);
+        }
+
+        #add-btn {
+            background: var(--accent);
+            border: none;
+            color: black;
+            font-weight: bold;
+        }
+
+        #task-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 6px;
+            list-style: none;
+        }
+
+        .task {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            background: var(--glass);
+            border-radius: 8px;
+            border-left: 4px solid transparent;
+            transition: all 0.25s ease;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .task.dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+
+        .task.done {
+            opacity: 0.55;
+            text-decoration: line-through;
+        }
+
+        .task.high       { border-left-color: var(--high); }
+        .task.medium     { border-left-color: var(--medium); }
+        .task.low        { border-left-color: var(--low); }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 500;
+        }
+
+        .task-due {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        .actions button {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .actions button:hover { color: white; }
+
+        #empty-state {
+            text-align: center;
+            margin-top: 20vh;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        #search {
+            flex: 1;
+            min-width: 180px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>VOID • TASKS</h1>
+
+    <div id="controls">
+        <input id="task-input" placeholder="What needs to be done in the void..." autocomplete="off"/>
+        <select id="priority-select">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+        </select>
+        <input type="date" id="due-date" />
+        <button id="add-btn">CREATE</button>
+        <input type="text" id="search" placeholder="Filter tasks..." />
+    </div>
+
+    <ul id="task-list"></ul>
+
+    <div id="empty-state" style="display:none">
+        Nothing exists here yet...<br>
+        The void is waiting for your first mark.
+    </div>
+
+<script>
+// ────────────────────────────────────────────────
+const STORAGE_KEY = 'void-tasks-v1';
+let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+const taskList = document.getElementById('task-list');
+const input = document.getElementById('task-input');
+const priority = document.getElementById('priority-select');
+const dueDate = document.getElementById('due-date');
+const addBtn = document.getElementById('add-btn');
+const search = document.getElementById('search');
+const empty = document.getElementById('empty-state');
+
+function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+function notify(title, msg) {
+    window.parent?.postMessage({
+        type: 'PUSH_NOTIF',
+        icon: 'https://img.icons8.com/fluency/96/000000/todo-list.png',
+        title,
+        message: msg
+    }, '*');
+}
+
+function render(filter = '') {
+    taskList.innerHTML = '';
+    const lowerFilter = filter.toLowerCase();
+
+    const visible = tasks.filter(t => 
+        t.title.toLowerCase().includes(lowerFilter) ||
+        (t.due && t.due.includes(lowerFilter))
+    );
+
+    empty.style.display = visible.length === 0 ? 'block' : 'none';
+
+    visible.forEach((task, i) => {
+        const li = document.createElement('li');
+        li.className = `task ${task.priority} ${task.done ? 'done' : ''}`;
+        li.draggable = true;
+        li.dataset.index = i;
+
+        li.innerHTML = `
+            <input type="checkbox" class="checkbox" ${task.done ? 'checked' : ''}>
+            <div class="task-content">
+                <div class="task-title">${task.title}</div>
+                ${task.due ? `<div class="task-due">due ${new Date(task.due).toLocaleDateString()}</div>` : ''}
+            </div>
+            <div class="actions">
+                <button class="edit-btn">✎</button>
+                <button class="delete-btn">×</button>
+            </div>
+        `;
+
+        // events
+        li.querySelector('.checkbox').onchange = () => {
+            task.done = !task.done;
+            save();
+            render(search.value);
+            notify('Task Updated', task.done ? 'Completed' : 'Reopened');
+        };
+
+        li.querySelector('.edit-btn').onclick = () => {
+            const newTitle = prompt('Edit task:', task.title);
+            if (newTitle?.trim()) {
+                task.title = newTitle.trim();
+                save();
+                render(search.value);
+            }
+        };
+
+        li.querySelector('.delete-btn').onclick = () => {
+            if (confirm('Erase this mark from existence?')) {
+                tasks.splice(i, 1);
+                save();
+                render(search.value);
+                notify('Erased', task.title);
+            }
+        };
+
+        // drag & drop
+        li.ondragstart = e => {
+            e.dataTransfer.setData('text/plain', i);
+            setTimeout(() => li.classList.add('dragging'), 0);
+        };
+
+        li.ondragend = () => li.classList.remove('dragging');
+
+        li.ondragover = e => e.preventDefault();
+
+        li.ondrop = e => {
+            e.preventDefault();
+            const from = +e.dataTransfer.getData('text/plain');
+            const to = +li.dataset.index;
+
+            if (from === to) return;
+
+            const [moved] = tasks.splice(from, 1);
+            tasks.splice(to, 0, moved);
+            save();
+            render(search.value);
+        };
+
+        taskList.appendChild(li);
+    });
+}
+
+// ────────────────────────────────────────────────
+addBtn.onclick = () => {
+    const title = input.value.trim();
+    if (!title) return;
+
+    tasks.push({
+        title,
+        priority: priority.value,
+        due: dueDate.value || null,
+        done: false,
+        created: Date.now()
+    });
+
+    input.value = '';
+    dueDate.value = '';
+    save();
+    render(search.value);
+    notify('Mark Created', title);
+};
+
+input.onkeydown = e => { if (e.key === 'Enter') addBtn.click(); };
+
+search.oninput = () => render(search.value);
+
+document.getElementById('add-btn').onclick = addBtn.onclick; // redundant but ok
+
+// initial render
+render();
+
+// welcome pulse
+if (tasks.length === 0) {
+    setTimeout(() => notify('Void • Tasks', 'The darkness is yours to fill.'), 1200);
+}
+</script>
+</body>
+</html>

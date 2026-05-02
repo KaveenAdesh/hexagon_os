@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonOS | File Manager</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Fira+Code:wght@400&display=swap');
+
+        :root {
+            --accent: #00ffcc;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --bg: #0a0a0b;
+            --danger: #ff5555;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Nunito', sans-serif; }
+        body { background: var(--bg); color: white; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; user-select: none; }
+
+        .explorer-window {
+            width: 100vw; height: 100vh;
+            background: var(--glass); backdrop-filter: blur(25px);
+            display: grid; grid-template-columns: 260px 1fr;
+            position: relative;
+        }
+
+        /* Sidebar */
+        .sidebar { padding: 25px; background: rgba(0, 0, 0, 0.3); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+        .sidebar h2 { font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 20px; cursor: pointer; }
+        .folder-group { margin-left: 15px; border-left: 1px solid var(--border); }
+        .nav-link { padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 0.9rem; display: flex; align-items: center; margin: 2px 0; color: #ccc; }
+        .nav-link:hover { background: var(--glass); color: var(--accent); }
+        .active-folder { background: rgba(0, 255, 204, 0.1); color: var(--accent); border-right: 3px solid var(--accent); }
+
+        /* Main View */
+        .main-view { padding: 30px; display: flex; flex-direction: column; overflow: hidden; }
+        .address-bar { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.4); padding: 10px 20px; border-radius: 30px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .path-text { font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--accent); flex-grow: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .tool-btn { background: var(--glass); border: 1px solid var(--border); color: white; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.75rem; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+        .tool-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 204, 0.05); }
+        .tool-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+
+        /* Grid */
+        .file-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+            gap: 20px; 
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-bottom: 20px;
+        }
+        .item { display: flex; flex-direction: column; align-items: center; padding: 12px; border-radius: 12px; cursor: pointer; transition: 0.2s; text-align: center; border: 1px solid transparent;max-height: 100px;}
+        .item:hover { background: rgba(0, 255, 204, 0.05); border-color: var(--border); }
+        .item.selected { background: rgba(0, 255, 204, 0.12); border-color: var(--accent); }
+        .item img { width: 48px; height: 48px; margin-bottom: 8px; object-fit: contain; pointer-events: none; }
+        .item img.preview { object-fit: cover; border-radius: 4px; border: 1px solid var(--border); background: #000; }
+        .item span { font-size: 0.75rem; word-break: break-all; color: #eee; }
+
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 99; }
+        .modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #121214; padding: 25px; border-radius: 16px; border: 1px solid var(--border); z-index: 100; width: 340px; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        .modal h3 { margin-bottom: 15px; font-size: 1rem; color: var(--accent); }
+        .modal input { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid var(--border); color: white; border-radius: 8px; outline: none; font-size: 0.9rem; }
+        .modal input:focus { border-color: var(--accent); }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-primary { background: var(--accent); color: black; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1; }
+        .btn-secondary { background: var(--glass); color: white; border: 1px solid var(--border); padding: 10px; border-radius: 8px; cursor: pointer; flex: 1; }
+
+        #notification {
+            position: fixed; bottom: 20px; right: 20px; padding: 10px 20px;
+            background: var(--accent); color: #000; border-radius: 8px;
+            font-weight: bold; font-size: 0.8rem; transform: translateY(100px);
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000;
+        }
+
+        .glowing { box-shadow: 0 0 10px var(--accent); border-color: var(--accent) !important; color: var(--accent) !important; }
+        
+        #tree-root{
+            height: 70vh;
+            overflow-y: scroll;
+            padding-right: 30px;
+        }
+    
+    </style>
+</head>
+<body>
+
+    <div class="explorer-window">
+        <div id="notification">Action Completed</div>
+        <div class="modal-overlay" id="overlay" onclick="hideModals()"></div>
+
+        <aside class="sidebar">
+            <h2 onclick="resetToRoot()">🏠 Root Drive</h2>
+            <div id="tree-root"></div>
+            <div style="margin-top: auto; padding-top: 20px;">
+                <button class="tool-btn" style="width: 100%; border-style: dashed; margin-bottom: 8px;" onclick="showModal('folder-modal')">+ New Folder</button>
+                <button class="tool-btn" style="width: 100%; border-style: dashed;" onclick="showModal('add-modal')">+ New File</button>
+            </div>
+        </aside>
+
+        <main class="main-view">
+            <div class="address-bar">
+                <button class="tool-btn" onclick="goUp()">BACK</button>
+                <div class="path-text" id="path-display">root</div>
+            </div>
+
+            <div class="toolbar" id="file-tools" style="visibility: hidden;">
+                <button class="tool-btn" onclick="copyItem()">Copy</button>
+                <button class="tool-btn" onclick="cutItem()">Cut</button>
+                <button class="tool-btn" id="paste-btn" disabled onclick="pasteItem()">Paste</button>
+                <button class="tool-btn" onclick="showModal('rename-modal')">Rename</button>
+                <button class="tool-btn" onclick="showModal('delete-modal')" style="color:var(--danger)">Delete</button>
+            </div>
+
+            <div class="file-grid" id="file-grid"></div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="add-modal" class="modal">
+        <h3>New File</h3>
+        <input type="text" id="file-name" placeholder="filename.txt">
+        <input type="text" id="file-url" placeholder="Content or URL (for images/video)">
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="hideModals()">Cancel</button>
+            <button class="btn-primary" onclick="saveFile()">Create</button>
+        </div>
+    </div>
+
+    <div id="folder-modal" class="modal">
+        <h3>New Folder</h3>
+        <input type="text" id="new-folder-name" placeholder="Folder Name">
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="hideModals()">Cancel</button>
+            <button class="btn-primary" onclick="createFolder()">Create</button>
+        </div>
+    </div>
+
+    <div id="rename-modal" class="modal">
+        <h3>Rename</h3>
+        <input type="text" id="rename-input">
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="hideModals()">Cancel</button>
+            <button class="btn-primary" onclick="confirmRename()">Apply</button>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal">
+        <h3>Delete Item?</h3>
+        <p style="font-size: 0.8rem; color: #888; margin: 10px 0;">This action cannot be undone.</p>
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="hideModals()">Keep</button>
+            <button class="btn-primary" style="background:var(--danger); color:white" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+
+    <script>
+        const ICONS = {
+            folder: "https://cdn-icons-png.flaticon.com/128/3735/3735057.png",
+            html: "https://cdn-icons-png.flaticon.com/128/136/136528.png",
+            css: "https://cdn-icons-png.flaticon.com/128/136/136527.png",
+            js: "https://cdn-icons-png.flaticon.com/128/136/136530.png",
+            json: "https://cdn-icons-png.flaticon.com/128/136/136525.png",
+            txt: "https://cdn-icons-png.flaticon.com/128/18260/18260125.png",
+            video: "https://cdn-icons-png.flaticon.com/128/10260/10260977.png",
+            cmd: "https://cdn-icons-png.flaticon.com/128/7207/7207841.png",
+            bash: "https://cdn-icons-png.flaticon.com/128/7207/7207841.png",
+            sh: "https://cdn-icons-png.flaticon.com/128/7207/7207841.png",
+            unsupported: "https://cdn-icons-png.flaticon.com/128/10192/10192708.png"
+        };
+
+        let pathStack = ["root"];
+        let selectedItem = null;
+        let clipboard = { data: null, action: null, sourceFolder: null };
+
+        // --- Sharded Storage Backend ---
+        
+        function getTree() {
+            let tree = JSON.parse(localStorage.getItem('system-storage') || '[]');
+            if (tree.length === 0) {
+                tree = [{"root": []}];
+                localStorage.setItem('system-storage', JSON.stringify(tree));
+            }
+            return tree;
+        }
+
+        function saveTree(tree) {
+            localStorage.setItem('system-storage', JSON.stringify(tree));
+        }
+
+        function getCurrentPath() {
+            return pathStack[pathStack.length - 1];
+        }
+
+        function updateTree(callback) {
+            const tree = getTree();
+            let current = tree;
+            let found = null;
+
+            for (let i = 0; i < pathStack.length; i++) {
+                const name = pathStack[i];
+                const entry = current.find(obj => Object.keys(obj)[0] === name);
+                if (entry) {
+                    if (i === pathStack.length - 1) found = entry[name];
+                    else current = entry[name];
+                }
+            }
+
+            if (found) {
+                callback(found);
+                saveTree(tree);
+            }
+        }
+
+        // --- Rendering ---
+
+        function init() {
+            const treeData = getTree();
+            const treeRoot = document.getElementById('tree-root');
+            treeRoot.innerHTML = "";
+            buildSidebarTree(treeRoot, treeData);
+            renderFiles();
+        }
+
+        function buildSidebarTree(container, data) {
+            data.forEach(item => {
+                const name = Object.keys(item)[0];
+                const children = item[name];
+                
+                const div = document.createElement('div');
+                div.className = `nav-link ${pathStack[pathStack.length-1] === name ? 'active-folder' : ''}`;
+                div.innerHTML = `📁 ${name}`;
+                div.onclick = (e) => {
+                    e.stopPropagation();
+                    pathStack = ["root"];
+                    if(name !== "root") pathStack.push(name);
+                    selectedItem = null;
+                    init();
+                };
+                container.appendChild(div);
+
+                if (children.length > 0) {
+                    const group = document.createElement('div');
+                    group.className = "folder-group";
+                    buildSidebarTree(group, children);
+                    container.appendChild(group);
+                }
+            });
+        }
+
+        function renderFiles() {
+            const grid = document.getElementById('file-grid');
+            const currentFolder = getCurrentPath();
+            document.getElementById('path-display').innerText = pathStack.join(' / ');
+            document.getElementById('file-tools').style.visibility = "visible";
+            
+            grid.innerHTML = "";
+            
+            let subfolders = [];
+            const tree = getTree();
+            let currentLevel = tree;
+            for(let p of pathStack) {
+                const entry = currentLevel.find(obj => Object.keys(obj)[0] === p);
+                if(entry) {
+                    if(p === currentFolder) subfolders = entry[p];
+                    else currentLevel = entry[p];
+                }
+            }
+
+            const files = JSON.parse(localStorage.getItem(currentFolder) || "[]");
+
+            // Render Folders
+            subfolders.forEach(obj => {
+                const name = Object.keys(obj)[0];
+                createGridItem({ name, type: 'folder' }, grid);
+            });
+
+            // Render Files
+            files.forEach((file, index) => {
+                createGridItem({ ...file, index }, grid);
+            });
+
+            updatePasteUI();
+        }
+
+        function createGridItem(item, container) {
+            const div = document.createElement('div');
+            div.className = "item";
+            if (selectedItem && selectedItem.name === item.name) div.classList.add('selected');
+
+            const ext = item.name.split('.').pop().toLowerCase();
+            const isImg = ['jpg','jpeg','png','gif','webp'].includes(ext);
+            const isVideo = ['mp4','webm'].includes(ext);
+            let icon = ICONS.folder;
+
+            if (item.type !== 'folder') {
+                if (isImg && item.content) {
+                    icon = item.content; // Use actual image content as thumbnail
+                } else {
+                    if (isVideo) {
+                        icon = ICONS.video;
+                    } else {   
+                        icon = ICONS[ext] || ICONS.unsupported;
+                    }
+                }
+            }
+
+            div.innerHTML = `
+                <img src="${icon}" class="${isImg ? 'preview' : ''}" onerror="this.src='${ICONS.unsupported}'">
+                <span>${item.name}</span>
+            `;
+
+            div.onclick = (e) => {
+                e.stopPropagation();
+                selectedItem = item;
+                renderFiles();
+            };
+
+            div.ondblclick = () => {
+                if (item.type === 'folder') {
+                    pathStack.push(item.name);
+                    selectedItem = null;
+                    init();
+                } else {
+                    handleOpenFile(item);
+                }
+            };
+
+            container.appendChild(div);
+        }
+
+        // --- Logic Handlers ---
+
+        function handleOpenFile(file) {
+            // Send message to parent window (HexagonOS Kernel)
+            // This triggers the global message listener in script.js
+            window.parent.postMessage({
+                type: 'OPEN_FILE',
+                fileName: file.name,
+                fileType: file.type || 'txt',
+                folderName: getCurrentPath(),
+                content: file.content
+            }, '*');
+            
+            notify(`Opening ${file.name}...`);
+        }
+
+        function createFolder() {
+            const name = document.getElementById('new-folder-name').value.trim();
+            if (!name) return;
+
+            updateTree(level => {
+                if (!level.find(o => Object.keys(o)[0] === name)) {
+                    level.push({ [name]: [] });
+                    localStorage.setItem(name, "[]");
+                }
+            });
+
+            hideModals();
+            init();
+            notify("Folder Created");
+        }
+
+        function saveFile() {
+            const name = document.getElementById('file-name').value.trim();
+            const content = document.getElementById('file-url').value.trim();
+            if (!name) return;
+
+            const ext = name.split('.').pop().toLowerCase();
+            let type = 'txt';
+            if (['jpg','png','jpeg','gif','webp'].includes(ext)) type = 'img';
+            else if (['mp4','webm'].includes(ext)) type = 'video';
+            else if (['html','js','css','json'].includes(ext)) type = ext;
+
+            const folder = getCurrentPath();
+            let files = JSON.parse(localStorage.getItem(folder) || "[]");
+            files.push({ name, type, content });
+            localStorage.setItem(folder, JSON.stringify(files));
+
+            hideModals();
+            renderFiles();
+            notify("File Created");
+        }
+
+        function copyItem() {
+            if (!selectedItem || selectedItem.type === 'folder') return;
+            clipboard = { data: {...selectedItem}, action: 'copy' };
+            notify("Copied");
+            renderFiles();
+        }
+
+        function cutItem() {
+            if (!selectedItem || selectedItem.type === 'folder') return;
+            clipboard = { data: {...selectedItem}, action: 'cut', sourceFolder: getCurrentPath() };
+            notify("Cut");
+            renderFiles();
+        }
+
+        function pasteItem() {
+            if (!clipboard.data) return;
+            const folder = getCurrentPath();
+            let files = JSON.parse(localStorage.getItem(folder) || "[]");
+            
+            // Generate unique name if collision
+            let finalName = clipboard.data.name;
+            let counter = 1;
+            while(files.find(f => f.name === finalName)) {
+                const parts = clipboard.data.name.split('.');
+                if(parts.length > 1) {
+                    const ext = parts.pop();
+                    finalName = `${parts.join('.')}_copy${counter}.${ext}`;
+                } else {
+                    finalName = `${clipboard.data.name}_copy${counter}`;
+                }
+                counter++;
+            }
+            
+            let newItem = {...clipboard.data, name: finalName};
+            files.push(newItem);
+            localStorage.setItem(folder, JSON.stringify(files));
+
+            if (clipboard.action === 'cut' && clipboard.sourceFolder) {
+                let srcFiles = JSON.parse(localStorage.getItem(clipboard.sourceFolder) || "[]");
+                srcFiles = srcFiles.filter(f => f.name !== clipboard.data.name);
+                localStorage.setItem(clipboard.sourceFolder, JSON.stringify(srcFiles));
+                clipboard = { data: null, action: null };
+            }
+
+            renderFiles();
+            notify("Pasted");
+        }
+
+        function confirmRename() {
+            const newName = document.getElementById('rename-input').value.trim();
+            if (!newName || !selectedItem) return;
+
+            const folder = getCurrentPath();
+            if (selectedItem.type === 'folder') {
+                updateTree(level => {
+                    const entry = level.find(o => Object.keys(o)[0] === selectedItem.name);
+                    if(entry) {
+                        const content = entry[selectedItem.name];
+                        entry[newName] = content;
+                        delete entry[selectedItem.name];
+                        const shardData = localStorage.getItem(selectedItem.name);
+                        localStorage.setItem(newName, shardData || "[]");
+                        localStorage.removeItem(selectedItem.name);
+                    }
+                });
+            } else {
+                let files = JSON.parse(localStorage.getItem(folder) || "[]");
+                const f = files.find(x => x.name === selectedItem.name);
+                if (f) f.name = newName;
+                localStorage.setItem(folder, JSON.stringify(files));
+            }
+
+            hideModals();
+            init();
+            notify("Renamed");
+        }
+
+        function confirmDelete() {
+            if (!selectedItem) return;
+            const folder = getCurrentPath();
+
+            if (selectedItem.type === 'folder') {
+                updateTree(level => {
+                    const idx = level.findIndex(o => Object.keys(o)[0] === selectedItem.name);
+                    if (idx !== -1) level.splice(idx, 1);
+                });
+                localStorage.removeItem(selectedItem.name);
+            } else {
+                let files = JSON.parse(localStorage.getItem(folder) || "[]");
+                files = files.filter(f => f.name !== selectedItem.name);
+                localStorage.setItem(folder, JSON.stringify(files));
+            }
+
+            selectedItem = null;
+            hideModals();
+            init();
+            notify("Deleted");
+        }
+
+        // --- UI Helpers ---
+
+        function updatePasteUI() {
+            const btn = document.getElementById('paste-btn');
+            if (clipboard.data) {
+                btn.disabled = false;
+                btn.classList.add('glowing');
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('glowing');
+            }
+        }
+
+        function goUp() {
+            if (pathStack.length > 1) {
+                pathStack.pop();
+                selectedItem = null;
+                init();
+            }
+        }
+
+        function resetToRoot() {
+            pathStack = ["root"];
+            selectedItem = null;
+            init();
+        }
+
+        function showModal(id) {
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById(id).style.display = 'block';
+            if (id === 'rename-modal' && selectedItem) {
+                document.getElementById('rename-input').value = selectedItem.name;
+            }
+        }
+
+        function hideModals() {
+            document.getElementById('overlay').style.display = 'none';
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        }
+
+        function notify(msg) {
+            const n = document.getElementById('notification');
+            n.innerText = msg;
+            n.style.transform = "translateY(0)";
+            setTimeout(() => n.style.transform = "translateY(100px)", 2000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

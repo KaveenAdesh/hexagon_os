@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hexagon Flux | Pro Edition</title>
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --glass: rgba(15, 16, 22, 0.8);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent; /* Allows OS wallpaper to show through if glassmorphic */
+            font-family: 'Nunito', sans-serif;
+            color: white;
+        }
+
+        #app-container {
+            width: 100vw;
+            height: 100vh;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #flux-canvas {
+            flex-grow: 1;
+            cursor: crosshair;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            pointer-events: none;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background: var(--accent);
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            color: #000;
+            font-weight: 800;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div class="ui-overlay">
+        <h1 style="margin:0; font-size: 24px;">HEXAGON FLUX</h1>
+        <p id="stats" style="font-size: 12px; opacity: 0.7;">Active Particles: 0</p>
+    </div>
+
+    <canvas id="flux-canvas"></canvas>
+
+    <div class="controls" style="pointer-events: auto;">
+        <button onclick="changeMode('attract')">ATTRACT</button>
+        <button onclick="changeMode('repel')">REPEL</button>
+        <button onclick="clearCanvas()">RESET</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('flux-canvas');
+    const ctx = canvas.getContext('2d');
+    const stats = document.getElementById('stats');
+    
+    let particles = [];
+    let mode = 'attract';
+    let mouse = { x: -1000, y: -1000 };
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+
+    class Particle {
+        constructor() {
+            this.init();
+        }
+
+        init() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = (Math.random() - 0.5) * 2;
+            this.radius = Math.random() * 2 + 1;
+            this.color = `hsl(${180 + Math.random() * 40}, 100%, 60%)`;
+        }
+
+        update() {
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const force = (150 - dist) / 150;
+
+            if (dist < 150) {
+                const angle = Math.atan2(dy, dx);
+                const moveX = Math.cos(angle) * force * 5;
+                const moveY = Math.sin(angle) * force * 5;
+
+                if (mode === 'attract') {
+                    this.vx += moveX;
+                    this.vy += moveY;
+                } else {
+                    this.vx -= moveX;
+                    this.vy -= moveY;
+                }
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vx *= 0.95; // Friction
+            this.vy *= 0.95;
+
+            // Bounds check
+            if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+            if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        resize();
+        particles = Array.from({ length: 200 }, () => new Particle());
+        animate();
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        stats.innerText = `Active Particles: ${particles.length} | Mode: ${mode.toUpperCase()}`;
+        requestAnimationFrame(animate);
+    }
+
+    function changeMode(m) { mode = m; }
+    function clearCanvas() { particles.forEach(p => p.init()); }
+
+    window.addEventListener('mousemove', e => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
+
+    window.addEventListener('resize', resize);
+    init();
+
+    // HexagonOS Inter-App Communication (Kernel Bridge)
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'system-theme-change') {
+            // Adapt app colors to OS accent color dynamically
+            const newAccent = event.data.accentColor;
+            document.documentElement.style.setProperty('--accent', newAccent);
+        }
+    });
+</script>
+</body>
+</html>

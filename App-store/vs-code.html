@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hexagon Code Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;800&family=Fira+Code&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <style>
+        :root {
+            --bg: #050508;
+            --sidebar: #0d0e12;
+            --editor: #090a0f;
+            --accent: #00d2ff;
+            --border: rgba(255, 255, 255, 0.05);
+            --glass: rgba(255, 255, 255, 0.02);
+        }
+
+        body { 
+            margin: 0; display: flex; height: 100vh; 
+            background: var(--bg); color: #e0e0e0; 
+            font-family: 'Nunito', sans-serif; overflow: hidden; 
+        }
+
+        /* High-End Sidebar */
+        #explorer { 
+            width: 280px; background: var(--sidebar); 
+            border-right: 1px solid var(--border); display: flex; 
+            flex-direction: column;
+        }
+
+        .brand { 
+            padding: 30px 25px 10px 25px; font-size: 14px; 
+            font-weight: 800; color: var(--accent); letter-spacing: 1px;
+        }
+
+        .breadcrumb-nav {
+            padding: 0 25px 20px 25px; font-size: 11px; color: #666;
+            cursor: pointer; display: flex; gap: 8px; align-items: center;
+        }
+        .breadcrumb-nav span:last-child { color: var(--accent); font-weight: 700; }
+
+        .file-list { flex: 1; overflow-y: auto; padding: 0 15px; }
+
+        .item { 
+            padding: 12px 15px; cursor: pointer; border-radius: 12px; 
+            font-size: 13px; display: flex; align-items: center; gap: 12px;
+            margin-bottom: 5px; transition: 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            border: 1px solid transparent;
+        }
+
+        .item:hover { background: var(--glass); border-color: var(--border); transform: scale(1.02); }
+        .item.active { background: rgba(0, 210, 255, 0.08); color: var(--accent); border-color: rgba(0, 210, 255, 0.2); }
+
+        /* Delete Button */
+        .delete-btn {
+            font-size: 16px;
+            padding: 0 6px;
+        }
+        .item:hover .delete-btn {
+            opacity: 0.7;
+        }
+
+        /* Main Editor View */
+        #main { flex: 1; display: flex; flex-direction: column; }
+
+        #toolbar { 
+            height: 70px; background: rgba(5, 5, 8, 0.5); 
+            backdrop-filter: blur(30px); display: flex; 
+            align-items: center; padding: 0 30px; gap: 15px; 
+            border-bottom: 1px solid var(--border);
+        }
+
+        .file-title { font-size: 13px; font-weight: 700; opacity: 0.8; }
+
+        /* Controls */
+        .sidebar-footer { padding: 20px; display: flex; gap: 10px; background: var(--sidebar); }
+        .btn-action { 
+            flex: 1; background: var(--glass); color: white; border: 1px solid var(--border); 
+            padding: 12px; border-radius: 10px; cursor: pointer; font-size: 10px; 
+            font-weight: 800; text-transform: uppercase; transition: 0.3s;
+        }
+        .btn-action:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+        #run-btn { 
+            background: #00ff95; color: #000; display: none; border: none; 
+            padding: 8px 20px; border-radius: 8px; font-weight: 800; cursor: pointer; 
+        }
+
+        /* Editor with Prism */
+        #editor-container {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
+            background: var(--editor);
+        }
+
+        #highlight-layer,
+        #editor {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            padding: 40px;
+            font-family: 'Fira Code', monospace;
+            font-size: 15px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            overflow: auto;
+            background: transparent;
+            caret-color: var(--accent);
+            resize: none;
+            border: none;
+            outline: none;
+        }
+
+        #highlight-layer {
+            pointer-events: none;
+            user-select: none;
+            z-index: 1;
+            color: #d4d4d4;
+        }
+
+        #editor {
+            z-index: 2;
+            color: transparent;
+            background: transparent;
+        }
+
+        /* Hide Prism line numbers if any */
+        .line-numbers .line-numbers-rows {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="explorer">
+    <div class="brand">HEXAGON_CODE</div>
+    <div class="breadcrumb-nav" onclick="resetNav()">
+        <span>root</span> / <span id="current-folder-label">vs-code</span>
+    </div>
+    <div class="file-list" id="file-list"></div>
+    <div class="sidebar-footer">
+        <button class="btn-action" onclick="newItem('file')">+ File</button>
+        <button class="btn-action" onclick="newItem('folder')">+ Folder</button>
+    </div>
+</div>
+
+<div id="main">
+    <div id="toolbar">
+        <div class="file-title" id="active-filename">IDE_READY.HX</div>
+        <button class="btn-action" onclick="commitSave()">SAVE</button>
+        <button id="run-btn" onclick="launchManifest()">DEPLOY</button>
+    </div>
+    <div id="editor-container">
+        <pre id="highlight-layer" class="language-html"><code></code></pre>
+        <textarea id="editor" spellcheck="false" oninput="detectManifest(); updateHighlight();"></textarea>
+    </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// Tree / Storage logic (unchanged, just keeping it)
+// ──────────────────────────────────────────────
+
+let systemTree = JSON.parse(localStorage.getItem("system-storage"));
+if (!systemTree) {
+    systemTree = [{ "vs-code": [] }];
+    localStorage.setItem("system-storage", JSON.stringify(systemTree));
+}
+if (!localStorage.getItem("vs-code")) localStorage.setItem("vs-code", JSON.stringify([]));
+
+let currentPath = ["vs-code"];
+let activeFile = null;
+
+function saveTree() {
+    localStorage.setItem("system-storage", JSON.stringify(systemTree));
+}
+
+function getCurrentNode() {
+    let node = systemTree;
+    for (let i = 0; i < currentPath.length; i++) {
+        const folder = currentPath[i];
+        const found = node.find(obj => Object.keys(obj)[0] === folder);
+        if (!found) {
+            const newNode = { [folder]: [] };
+            node.push(newNode);
+            saveTree();
+            return newNode[folder];
+        }
+        node = found[folder];
+    }
+    return node;
+}
+
+function refresh() {
+    const list = document.getElementById('file-list');
+    list.innerHTML = "";
+    document.getElementById('current-folder-label').innerText = currentPath.join('/');
+
+    const subNodes = getCurrentNode();
+    const subfolders = subNodes.map(obj => Object.keys(obj)[0]);
+
+    const currentKey = currentPath[currentPath.length - 1];
+    const files = JSON.parse(localStorage.getItem(currentKey)) || [];
+
+    const items = [
+        ...subfolders.map(name => ({ name, type: 'folder' })),
+        ...files
+    ];
+
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `item ${item.name === activeFile ? 'active' : ''}`;
+        div.innerHTML = `
+            <span>${item.type === 'file' ? '📄' : '📁'}</span> 
+            ${item.name}
+            <span class="delete-btn" onclick="event.stopPropagation(); deleteItem('${item.name}', '${item.type}');">×</span>
+        `;
+        
+        div.onmouseenter = () => div.querySelector('.delete-btn').style.opacity = '1';
+        div.onmouseleave = () => div.querySelector('.delete-btn').style.opacity = '0';
+
+        div.onclick = (e) => {
+            if (e.target.classList.contains('delete-btn')) return;
+            if (item.type === 'file') openFile(item.name);
+            else travelTo(item.name);
+        };
+        list.appendChild(div);
+    });
+}
+
+function deleteItem(name, type) {
+    if (!confirm(`Delete ${type} "${name}"?`)) return;
+
+    const currentKey = currentPath[currentPath.length - 1];
+    const subNodes = getCurrentNode();
+
+    if (type === 'folder') {
+        const index = subNodes.findIndex(obj => Object.keys(obj)[0] === name);
+        if (index !== -1) subNodes.splice(index, 1);
+        saveTree();
+        localStorage.removeItem(name);
+    } else if (type === 'file') {
+        let files = JSON.parse(localStorage.getItem(currentKey)) || [];
+        files = files.filter(f => f.name !== name);
+        localStorage.setItem(currentKey, JSON.stringify(files));
+        if (activeFile === name) {
+            activeFile = null;
+            document.getElementById('editor').value = '';
+            document.getElementById('active-filename').innerText = 'NO_FILE';
+            document.getElementById('run-btn').style.display = 'none';
+        }
+    }
+    refresh();
+}
+
+function travelTo(folderName) {
+    const subNodes = getCurrentNode();
+    if (subNodes.some(obj => Object.keys(obj)[0] === folderName)) {
+        currentPath.push(folderName);
+        const key = folderName;
+        if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify([]));
+        refresh();
+    }
+}
+
+function resetNav() {
+    currentPath = ["vs-code"];
+    refresh();
+}
+
+function newItem(type) {
+    const name = prompt(`Enter ${type} name:`)?.trim();
+    if (!name) return;
+
+    const subNodes = getCurrentNode();
+
+    if (type === 'folder') {
+        if (!subNodes.some(obj => Object.keys(obj)[0] === name)) {
+            subNodes.push({ [name]: [] });
+            saveTree();
+            localStorage.setItem(name, JSON.stringify([]));
+        }
+    } else if (type === 'file') {
+        const currentKey = currentPath[currentPath.length - 1];
+        let files = JSON.parse(localStorage.getItem(currentKey)) || [];
+        if (!files.some(f => f.name === name)) {
+            files.push({ name, type: 'file', content: "" });
+            localStorage.setItem(currentKey, JSON.stringify(files));
+        }
+    }
+    refresh();
+}
+
+function openFile(name) {
+    const currentKey = currentPath[currentPath.length - 1];
+    const files = JSON.parse(localStorage.getItem(currentKey)) || [];
+    const file = files.find(f => f.name === name);
+    if (file) {
+        activeFile = name;
+        document.getElementById('editor').value = file.content;
+        document.getElementById('active-filename').innerText = name.toUpperCase();
+        detectManifest();
+        updateHighlight();
+        refresh();
+    }
+}
+
+function commitSave() {
+    if (!activeFile) return;
+    const currentKey = currentPath[currentPath.length - 1];
+    let files = JSON.parse(localStorage.getItem(currentKey)) || [];
+    const idx = files.findIndex(f => f.name === activeFile);
+    if (idx !== -1) {
+        files[idx].content = document.getElementById('editor').value;
+        localStorage.setItem(currentKey, JSON.stringify(files));
+        
+        window.parent.postMessage({
+            type: 'PUSH_NOTIF',
+            title: 'Storage Sync',
+            message: `Committed changes to ${currentPath.join('/')}/${activeFile}`,
+            icon: 'https://cdn-icons-png.flaticon.com/128/4997/4997543.png'
+        }, '*');
+        
+        updateHighlight();
+    }
+}
+
+function detectManifest() {
+    const val = document.getElementById('editor').value;
+    const btn = document.getElementById('run-btn');
+    try {
+        const j = JSON.parse(val);
+        btn.style.display = j.hexagon_manifest ? "block" : "none";
+    } catch(e) { btn.style.display = "none"; }
+}
+
+function launchManifest() {
+    let j = JSON.parse(document.getElementById('editor').value);
+
+    if (j.url && !j.url.startsWith('http') && !j.url.startsWith('data:') && !j.url.startsWith('blob:')) {
+        const currentKey = currentPath[currentPath.length - 1];
+        const files = JSON.parse(localStorage.getItem(currentKey)) || [];
+        const virtualFile = files.find(f => f.name === j.url);
+        
+        if (virtualFile) {
+            const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(virtualFile.content);
+            j.url = dataUrl;
+        } else {
+            alert(`Virtual file "${j.url}" not found.`);
+            return;
+        }
+    }
+
+    window.parent.postMessage({ type: 'OPEN_WINDOW', ...j }, '*');
+}
+
+// ──────────────────────────────────────────────
+// Editor with Prism.js highlighting
+// ──────────────────────────────────────────────
+
+const editor = document.getElementById('editor');
+const highlight = document.getElementById('highlight-layer');
+
+function updateHighlight() {
+    const code = editor.value || '';
+    const codeElement = highlight.querySelector('code');
+
+    // Auto-close tags
+    if (code.endsWith('>') || code.endsWith(' ')) {
+        const lastOpen = code.lastIndexOf('<');
+        if (lastOpen !== -1) {
+            const tagPart = code.slice(lastOpen + 1);
+            const tagNameMatch = tagPart.match(/^([a-zA-Z][a-zA-Z0-9:-]*)/);
+            if (tagNameMatch && !tagPart.includes('/')) {
+                const tag = tagNameMatch[1];
+                if (!['br','hr','img','input','meta','link','area','base','col','embed','param','source','track','wbr'].includes(tag.toLowerCase())) {
+                    const cursorPos = editor.selectionStart;
+                    editor.value = code + `</${tag}>`;
+                    editor.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        }
+    }
+
+    // Auto-close quotes
+    const lastChar = editor.value[editor.value.length - 1];
+    if (lastChar === '"' || lastChar === "'") {
+        const prev = editor.value[editor.value.length - 2];
+        if (prev !== lastChar && prev !== '\\') {
+            editor.value += lastChar;
+            editor.setSelectionRange(editor.value.length - 1, editor.value.length - 1);
+        }
+    }
+
+    // Language detection
+    const lang = code.trim().startsWith('{') || code.trim().startsWith('[') ? 'json' : 'html';
+    highlight.className = `language-${lang}`;
+
+    // Set and highlight
+    codeElement.textContent = editor.value;
+    Prism.highlightElement(codeElement);
+
+    // Scroll sync
+    highlight.scrollTop = editor.scrollTop;
+    highlight.scrollLeft = editor.scrollLeft;
+}
+
+editor.addEventListener('input', updateHighlight);
+editor.addEventListener('scroll', () => {
+    highlight.scrollTop = editor.scrollTop;
+    highlight.scrollLeft = editor.scrollLeft;
+});
+
+// Tab indent
+editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        editor.value = editor.value.substring(0, start) + "  " + editor.value.substring(end);
+        editor.selectionStart = editor.selectionEnd = start + 2;
+    }
+});
+
+// Initial sync
+updateHighlight();
+
+refresh();
+</script>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Jost:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Orbitron:wght@400..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Tektur:wght@400..900&family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap');
+
+*{
+   font-family: "Nunito", sans-serif;
+   font-weight: bold;
+   
+}
+        :root { --accent: #00d2ff; --border: rgba(255, 255, 255, 0.1); }
+        body {
+            margin: 0; color: white;
+            background: rgba(10, 10, 15, 0.75); display: flex; height: 100vh;
+        }
+        #sidebar { width: 220px; background: rgba(0,0,0,0.4); border-right: 1px solid var(--border); padding: 25px 15px; }
+        .nav-item { padding: 12px 20px; margin-bottom: 8px; border-radius: 12px; cursor: pointer; color: rgba(255,255,255,0.5); transition: 0.2s; }
+        .nav-item:hover { background: rgba(255,255,255,0.05); color: white; }
+        .nav-item.active { background: rgba(0, 210, 255, 0.1); color: var(--accent); font-weight: bold; }
+        
+        #viewport { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+        
+        .card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+        
+        /* Appearance Grid */
+        .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; margin-top: 15px; }
+        .swatch { height: 70px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; text-align: center; padding: 5px; }
+        .swatch.active { border-color: white; }
+
+        /* App Item */
+        .app-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 12px; margin-bottom: 8px; }
+        .app-info { display: flex; align-items: center; gap: 12px; }
+        .app-info img { width: 32px; height: 32px; border-radius: 8px; }
+        .btn-mute { background: #555; border: none; color: white; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-mute.muted { background: #f39c12; }
+        .btn-del { background: transparent; border: 1px solid #ff4757; color: #ff4757; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-left: 5px; }
+        
+        /* This controls the space between individual color squares */
+.palette-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+    gap: 20px; /* Increase this for more space between squares */
+    margin-bottom: 40px; /* This gives space after a block of 10 colors */
+}
+
+/* Optional: Add a label for each category to make it look professional */
+.category-label {
+    font-size: 14px;
+    color: var(--accent);
+    margin-bottom: 15px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.wallpaper-options{
+    width: 130px;
+    cursor: pointer;
+    border-radius: 10px;
+    background: linear-gradient(60deg, blue,purple);
+}
+.wallpapers {
+    padding: 20px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    flex-wrap: wrap;
+    max-width: 500px;
+    
+}   
+
+#current-wall{
+    width: 300px;
+    margin-bottom: 50px;
+    border-radius: 20px;
+}
+
+.bundle-card{
+    padding: 10px;
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    width: 130px;
+    height: 70px;
+    background-size:cover;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    top: 0;
+    left:0;
+
+}
+
+.theme-name{
+    background: rgba(55,55,55,0.5);
+    backdrop-filter: blur(4px);
+    padding: 2px 5px;
+    border-radius:5px;
+    max-width: 100px;
+}
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="nav-item active" onclick="tab('sys')">ℹ️ System</div>
+    <div class="nav-item" onclick="tab('appr')">🎨 Personalization</div>
+    <div class="nav-item" onclick="tab('apps')">🧩 App Manager</div>
+    <div class="nav-item" onclick="tab('desktop')">🖥️ Desktop Manager</div>
+</div>
+
+<div id="viewport">
+    <div id="sys" class="section active">
+        <h1>System Information</h1>
+        <div class="card" id="os-version"></div>
+        <div class="card"><b>Kernel:</b> JS-DOM Virtual Environment</div>
+    </div>
+
+    <div id="appr" class="section">
+        <h1>Appearance</h1>
+        <div class="card">
+            <span>Available themes</span>
+            <div class="palette" id="palette"></div>
+        </div>
+        <div class="card" style="display: none;">
+            <span>Blur Intensity</span>
+            <input type="range" id="blur" min="0" max="50" style="width:100%" oninput="saveAppearance()">
+        </div>
+    </div>
+
+    <div id="apps" class="section">
+        <h1>Installed Apps</h1>
+        <div id="app-list"></div>
+    </div>
+
+
+    <div id="desktop" class="section">
+        <h1>Desktop Manager</h1>
+
+        <div class="card">
+            <span>Change the wallpaper</span><br><br>
+    
+            <img src="" alt="" id="current-wall">
+            <div class="setting-card">
+            <h3>Auto-Change Duration</h3>
+            <p style="font-size: 12px; color: #888;">Current: <span id="duration-val">1</span> Minutes</p>
+            <input type="range" id="duration-slider" min="1" max="60" step="1" style="width: 100%; margin-top: 10px;">
+        </div> 
+            <div class="wallpapers" id="wallpapers">
+            </div>
+        </div>
+
+
+
+    <div class="card">
+
+        
+        <div class="setting-card">
+            <h3>Wallpaper Bundle</h3>
+            <p style="font-size: 12px; color: #888; margin-bottom: 10px;">Select a collection of high-quality backgrounds.</p>
+            <div id="bundle-list" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            </div>
+        </div>
+        
+   
+    </div>
+</div>    
+</div>
+
+<script>
+let osVersion = JSON.parse(localStorage.getItem("system-settings"))["os-version"] || "Web OS 26.0";
+let osName = JSON.parse(localStorage.getItem("system-settings"))["os-name"] || "Web OS 26.0";
+let showOsVersion = document.getElementById("os-version");
+showOsVersion.innerHTML = `<b>OS Version : ${osName} (-${osVersion}-)</b> `
+
+let colorPresets = [
+    // --- CATEGORY 1: DEEP GLASS (Focus & Stability | Alpha: 0.3) ---
+    { name: "Midnight", val: "rgba(10, 10, 20, 0.3)", type: "Deep" },
+    { name: "Charcoal", val: "rgba(25, 25, 25, 0.3)", type: "Deep" },
+    { name: "Deep Navy", val: "rgba(0, 20, 40, 0.3)", type: "Deep" },
+    { name: "Obsidian", val: "rgba(5, 5, 5, 0.3)", type: "Deep" },
+    { name: "Wine Dark", val: "rgba(40, 10, 20, 0.3)", type: "Deep" },
+    { name: "Forest Shadow", val: "rgba(10, 30, 15, 0.3)", type: "Deep" },
+    { name: "Slate", val: "rgba(45, 52, 54, 0.3)", type: "Deep" },
+    { name: "Chocolate", val: "rgba(30, 20, 10, 0.3)", type: "Deep" },
+    { name: "Ink Blue", val: "rgba(15, 25, 35, 0.3)", type: "Deep" },
+    { name: "Space Grey", val: "rgba(30, 35, 45, 0.3)", type: "Deep" },
+
+    // --- CATEGORY 2: VIBRANT GLASS (Energy & Clarity | Alpha: 0.5) ---
+    { name: "Neon Blue", val: "rgba(0, 210, 255, 0.5)", type: "Vibrant" },
+    { name: "Electric Lime", val: "rgba(50, 255, 126, 0.5)", type: "Vibrant" },
+    { name: "Hot Pink", val: "rgba(255, 15, 155, 0.5)", type: "Vibrant" },
+    { name: "Pure White", val: "rgba(255, 255, 255, 0.5)", type: "Vibrant" },
+    { name: "Sunshine", val: "rgba(255, 200, 50, 0.5)", type: "Vibrant" },
+    { name: "Aqua", val: "rgba(0, 255, 255, 0.5)", type: "Vibrant" },
+    { name: "Lava", val: "rgba(255, 71, 87, 0.5)", type: "Vibrant" },
+    { name: "Royal Purple", val: "rgba(104, 109, 224, 0.5)", type: "Vibrant" },
+    { name: "Tangerine", val: "rgba(255, 121, 63, 0.5)", type: "Vibrant" },
+    { name: "Mint", val: "rgba(186, 220, 88, 0.5)", type: "Vibrant" },
+
+    // --- CATEGORY 3: ETHEREAL GRADIENTS (Modern Flows | 135deg) ---
+    { name: "Borealis", val: "linear-gradient(135deg, rgba(179, 255, 171, 0.5), rgba(18, 255, 247, 0.5))", type: "Gradient" },
+    { name: "Cyberpunk", val: "linear-gradient(135deg, rgba(142, 84, 233, 0.5), rgba(71, 118, 230, 0.5))", type: "Gradient" },
+    { name: "Sunset", val: "linear-gradient(135deg, rgba(237, 66, 100, 0.5), rgba(255, 237, 188, 0.5))", type: "Gradient" },
+    { name: "Oceanic", val: "linear-gradient(135deg, rgba(43, 192, 228, 0.5), rgba(234, 236, 238, 0.3))", type: "Gradient" },
+    { name: "Dark Matter", val: "linear-gradient(135deg, rgba(10, 10, 30, 0.3), rgba(30, 10, 50, 0.3))", type: "Gradient" },
+    { name: "Fire & Ice", val: "linear-gradient(135deg, rgba(255, 81, 47, 0.3), rgba(0, 17, 255, 0.3))", type: "Gradient" },
+    { name: "Lavender", val: "linear-gradient(135deg, rgba(230, 230, 250, 0.5), rgba(147, 112, 219, 0.5))", type: "Gradient" },
+    { name: "Toxic", val: "linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(50, 255, 0, 0.3))", type: "Gradient" },
+    { name: "Blood Moon", val: "linear-gradient(135deg, rgba(30, 0, 0, 0.3), rgba(150, 0, 0, 0.3))", type: "Gradient" },
+    { name: "Silver", val: "linear-gradient(135deg, rgba(200, 200, 200, 0.5), rgba(50, 50, 50, 0.3))", type: "Gradient" }
+];
+
+colorPresets = localStorage.getItem("color-presets")  ? colorPresets.concat(JSON.parse(localStorage.getItem("color-presets"))) : colorPresets
+
+
+    function init() {
+        const settings = JSON.parse(localStorage.getItem("system-settings")) || {};
+        const pal = document.getElementById('palette');
+        colorPresets.forEach(p => {
+            const d = document.createElement('div');
+            d.className = 'swatch';
+            d.style.background = p.val;
+            d.innerText = p.name;
+            if(settings.windowBg === p.val) d.classList.add('active');
+            d.onclick = () => {
+                document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+                d.classList.add('active');
+                saveAppearance(p.val);
+            };
+            pal.appendChild(d);
+        });
+        renderApps();
+        loadWallpapers();
+    }
+
+    function saveAppearance(color) {
+        const settings = JSON.parse(localStorage.getItem("system-settings")) || {};
+        const newSet = {
+            windowBg: color || settings.windowBg || "rgba(10, 15, 30, 0.3)",
+            blurAmount: document.getElementById('blur').value + "px"
+        };
+        
+        settings["windowBg"] = newSet.windowBg;
+        settings["blurAmount"] = newSet.blurAmount;
+        localStorage.setItem("system-settings", JSON.stringify(settings));
+        window.parent.postMessage({ type: 'REFRESH_SETTINGS' }, '*');
+    }
+
+    function renderApps() {
+        let apps = JSON.parse(localStorage.getItem("apps")) || [];
+       
+
+        const silent = JSON.parse(localStorage.getItem("system-settings"))["silent-apps"] || [];
+        const container = document.getElementById('app-list');
+        container.innerHTML = "";
+        
+        apps.forEach((app, i) => {
+            const isSilent = silent.includes(app.name);
+            container.innerHTML += `
+                <div class="app-row">
+                    <div class="app-info">
+                        <img src="${app.icon}">
+                        <div><b>${app.name}</b><br><small>v${app.version}</small></div>
+                    </div>
+                    <div>
+                        <button class="btn-mute ${isSilent?'muted':''}" onclick="toggleSilent('${app.name}')">
+                            ${isSilent ? 'Unmute' : 'Mute'}
+                        </button>
+                        <button class="btn-del" onclick="removeApp(${i})">Uninstall</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function toggleSilent(name) {
+        let list = JSON.parse(localStorage.getItem("system-settings"))["silent-apps"] || [];
+        if(list.includes(name)) list = list.filter(n => n !== name);
+        else list.push(name);
+        let settings = JSON.parse(localStorage.getItem("system-settings")) || {};
+        settings["silent-apps"] = list;
+        localStorage.setItem("system-settings", JSON.stringify(settings));
+        renderApps();
+    }
+
+    function removeApp(i) {
+        let apps = JSON.parse(localStorage.getItem("apps"));
+        apps.splice(i, 1);
+        localStorage.setItem("apps", JSON.stringify(apps));
+        renderApps();
+    }
+
+    function tab(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+
+    let pureArea = document.getElementById("wallpapers")
+const bundles = {
+        "Hexagon Default":[
+        "https://wallpapercave.com/wp/wp12628570.jpg",
+
+        ],
+        "Nature": [
+            "https://wallpapercave.com/wp/wp15083050.webp",
+            "https://wallpapercave.com/wp/wp11109428.jpg",
+            "https://wallpapercave.com/wp/wp15170830.webp",
+            "https://wallpapercave.com/wp/wp5918136.jpg",
+            "https://wallpapercave.com/wp/wp4127620.jpg",
+            "https://wallpapercave.com/wp/wp15083058.webp",
+            "https://wallpapercave.com/wp/wp2471726.jpg",
+            "https://wallpapercave.com/wp/wp7888212.jpg",
+            "https://wallpapercave.com/wp/wp15170857.webp",
+            "https://wallpapercave.com/wp/wp15170860.webp",
+            "https://wallpapercave.com/wp/wp14836461.webp",
+            "https://wallpapercave.com/wp/wp15170868.webp",
+            "https://wallpapercave.com/wp/wp5085163.jpg",
+            "https://wallpapercave.com/wp/wp12411190.jpg"
+
+        ]
+    };
+
+    function loadWallpapers() {
+        let theme = JSON.parse(localStorage.getItem("system-wallpaper"));
+        let wallpapers = theme["wallpaper-list"];
+        let index = Number(theme["index"]);
+        
+        // 1. Update Preview
+        document.getElementById('current-wall').src = theme.url;
+        
+        // 2. Render Single Wallpapers (Fix duplication)
+        const wallContainer = document.getElementById("wallpapers");
+        wallContainer.innerHTML = ""; 
+        
+        wallpapers.forEach((src, i) => {
+            let img = document.createElement("img");
+            img.src = src;
+            img.className = "wallpaper-options";
+            if (i == index) img.style.border = "solid 3px var(--accent)";
+            img.onclick = () => changeWallpaper(i);
+            wallContainer.appendChild(img);
+        });
+
+        // 3. Render Bundles
+        const bundleContainer = document.getElementById("bundle-list");
+        bundleContainer.innerHTML = "";
+        
+        Object.keys(bundles).forEach(name => {
+            let div = document.createElement("div");
+            let themeName = document.createElement("p")
+            themeName.innerHTML = name;
+            themeName.className = "theme-name"
+            div.className = "bundle-card";
+            div.style = `background-image: url(${bundles[name][0]});`;
+            div.onclick = () => applyBundle(name);
+            bundleContainer.appendChild(div);
+            div.appendChild(themeName);
+        });
+
+        // 4. Set Duration Slider
+        const slider = document.getElementById('duration-slider');
+        slider.value = theme.duration || 1;
+        document.getElementById('duration-val').innerText = slider.value;
+    }
+
+    function applyBundle(name) {
+        let theme = JSON.parse(localStorage.getItem("system-wallpaper"));
+        theme["wallpaper-list"] = bundles[name];
+        theme["index"] = 0;
+        theme["url"] = bundles[name][0];
+        localStorage.setItem("system-wallpaper", JSON.stringify(theme));
+        
+        notifyKernel('wallpaper-url', theme.url);
+        loadWallpapers();
+    }
+
+    document.getElementById('duration-slider').oninput = function() {
+        let theme = JSON.parse(localStorage.getItem("system-wallpaper"));
+        theme.duration = Number(this.value);
+        document.getElementById('duration-val').innerText = this.value;
+        localStorage.setItem("system-wallpaper", JSON.stringify(theme));
+        
+        // Notify OS to reset the interval timer
+        notifyKernel('wallpaper-duration', theme.duration);
+    };
+
+    function notifyKernel(key, value) {
+        window.parent.postMessage({ type: 'UPDATE_SETTINGS', key, value }, '*');
+    }
+
+    function changeWallpaper(idx) {
+        let theme = JSON.parse(localStorage.getItem("system-wallpaper"));
+        theme.index = idx;
+        theme.url = theme["wallpaper-list"][idx];
+        localStorage.setItem("system-wallpaper", JSON.stringify(theme));
+        notifyKernel('wallpaper-url', theme.url);
+        loadWallpapers();
+    }
+
+window.onload = init;
+</script>
+</body>
+</html>

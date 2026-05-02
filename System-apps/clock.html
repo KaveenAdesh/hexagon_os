@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        :root { 
+            --google-blue: #4285f4; 
+            --google-red: #ea4335;
+            --bg: #1a1b1e;
+            --surface: #2d2e31;
+            --text: #e8eaed;
+        }
+        body { 
+            margin: 0; color: var(--text); font-family: 'Nunito', sans-serif; 
+            background: var(--bg); height: 100vh; display: flex; flex-direction: column;
+        }
+        .nav { display: flex; justify-content: center; gap: 40px; padding: 20px 0; background: var(--bg); }
+        .tab { padding: 10px 20px; cursor: pointer; opacity: 0.7; font-weight: 600; border-radius: 20px; transition: 0.3s; }
+        .tab.active { opacity: 1; background: #3c4043; color: var(--google-blue); }
+        .page { display: none; padding: 20px; flex-direction: column; align-items: center; }
+        .page.active { display: flex; animation: fadeIn 0.4s ease; }
+        .main-clock { font-size: 82px; font-weight: 300; margin: 40px 0 10px 0; color: var(--text); }
+        .main-date { font-size: 18px; opacity: 0.6; margin-bottom: 40px; }
+        .card { background: var(--surface); padding: 24px; border-radius: 28px; width: 90%; max-width: 360px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        label { display: block; font-size: 12px; margin-bottom: 8px; color: var(--google-blue); font-weight: bold; text-transform: uppercase; }
+        input { background: #202124; border: 1px solid #5f6368; color: white; padding: 12px; border-radius: 12px; width: 100%; box-sizing: border-box; font-size: 16px; margin-bottom: 15px; }
+        .fab { background: var(--google-blue); color: #1a1b1e; border: none; padding: 16px 32px; border-radius: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; width: 100%; }
+        .fab:hover { box-shadow: 0 8px 15px rgba(66, 133, 244, 0.3); transform: translateY(-2px); }
+        .alarm-row { display: flex; justify-content: space-between; align-items: center; background: #3c4043; padding: 15px 20px; border-radius: 16px; margin-bottom: 12px; width: 100%; box-sizing: border-box; }
+        .del-btn { background: transparent; border: none; color: var(--google-red); cursor: pointer; font-size: 18px; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <div class="tab active" onclick="show('clock')">Clock</div>
+        <div class="tab" onclick="show('alarm')">Alarm</div>
+    </div>
+
+    <div id="clock" class="page active">
+        <div class="main-clock" id="time">00:00</div>
+        <div id="date" class="main-date">...</div>
+        <div class="card">
+            <label>Widget Placement</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="t" value="26%">
+                <input type="text" id="l" value="75%">
+            </div>
+            <button class="fab" onclick="pushBeautifulWidget()">Add Widget to Shore</button>
+        </div>
+    </div>
+
+    <div id="alarm" class="page">
+        <div class="card">
+            <label>New Alarm</label>
+            <input type="time" id="atime">
+            <button class="fab" style="background: var(--google-red);" onclick="setAlarm()">Set Alarm</button>
+        </div>
+        <div id="list" style="width: 100%; max-width: 360px; margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        function update() {
+            const now = new Date();
+            document.getElementById('time').innerText = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+            document.getElementById('date').innerText = now.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+        setInterval(update, 1000); update();
+
+        function show(id) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if(id === 'alarm') renderAlarms();
+        }
+
+        function pushBeautifulWidget() {
+            const x = document.getElementById('t').value;
+            const y = document.getElementById('l').value;
+            
+            const html = `
+                <div style="padding: 12px; min-width: 190px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <div id="w-pulse" style="width: 7px; height: 7px; border-radius: 50%; background: #4285f4; box-shadow: 0 0 8px #4285f4; transition: 0.5s;"></div>
+                        <span style="font-size: 10px; letter-spacing: 1.5px; opacity: 0.6; font-weight: 800; text-transform: uppercase;">Shore Sync</span>
+                    </div>
+                    <div id="w-t" style="font-size: 44px; font-weight: 200; margin: -4px 0; color: white;">00:00</div>
+                    <div id="w-d" style="font-size: 11px; opacity: 0.5; font-weight: 600; letter-spacing: 0.5px;">...</div>
+                    <script>
+                        if (window.clkInt) clearInterval(window.clkInt);
+                        window.clkInt = setInterval(() => {
+                            const now = new Date();
+                            const tEl = document.getElementById('w-t');
+                            const dEl = document.getElementById('w-d');
+                            const pEl = document.getElementById('w-pulse');
+                            if (tEl) {
+                                tEl.innerText = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+                                dEl.innerText = now.toLocaleDateString(undefined, {month:'short', day:'numeric', weekday:'short'}).toUpperCase().replace(',', ' •');
+                                if(pEl) pEl.style.opacity = now.getSeconds() % 2 === 0 ? "1" : "0.3";
+                            } else { clearInterval(window.clkInt); }
+                        }, 1000);
+                        document.getElementById('w-t').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+                    <\/script>
+                </div>`;
+
+            window.parent.postMessage({ type: 'PUSH_WIDGET', id:'google-clk', html, w:'220px', h:'auto', x, y }, '*');
+        }
+
+        function setAlarm() {
+            const time = document.getElementById('atime').value;
+            if(!time) return;
+            let alarms = JSON.parse(localStorage.getItem('system-alarms')) || [];
+            alarms.push({ time, active: true });
+            localStorage.setItem('system-alarms', JSON.stringify(alarms));
+            
+            window.parent.postMessage({
+                type: 'PUSH_SERVICE',
+                name: 'Alarm-Engine',
+                icon: 'https://cdn-icons-png.flaticon.com/128/2088/2088617.png',
+                interval: 10000,
+                code: 'const now = new Date(); const cur = now.getHours().toString().padStart(2,"0") + ":" + now.getMinutes().toString().padStart(2,"0"); let list = JSON.parse(localStorage.getItem("system-alarms")) || []; list.forEach(a => { if(a.active && a.time === cur) { addNotification("https://cdn-icons-png.flaticon.com/128/2088/2088617.png", "ALARM", "Time is up: " + cur); a.active = false; localStorage.setItem("system-alarms", JSON.stringify(list)); } });'
+            }, '*');
+            renderAlarms();
+        }
+
+        function renderAlarms() {
+            const list = JSON.parse(localStorage.getItem('system-alarms')) || [];
+            const area = document.getElementById('list');
+            area.innerHTML = "";
+            list.forEach((a, i) => {
+                area.innerHTML += `
+                    <div class="alarm-row">
+                        <span style="font-size: 20px; font-weight: 600;">${a.time}</span>
+                        <button class="del-btn" onclick="deleteAlarm(${i})">✕</button>
+                    </div>`;
+            });
+        }
+
+        function deleteAlarm(index) {
+            let alarms = JSON.parse(localStorage.getItem('system-alarms')) || [];
+            alarms.splice(index, 1);
+            localStorage.setItem('system-alarms', JSON.stringify(alarms));
+            renderAlarms();
+        }
+    </script>
+</body>
+</html>

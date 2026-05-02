@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Jost:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&family=Orbitron:wght@400..900&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Tektur:wght@400..900&family=Winky+Rough:ital,wght@0,300..900;1,300..900&display=swap');
+
+*{
+   font-family: "Nunito", sans-serif;
+   font-weight: bold;
+   
+}
+        :root {
+            --accent: #00d2ff;
+            --accent-glow: rgba(0, 210, 255, 0.4);
+            --bg-dark: rgba(60,60,80,0.75);
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-secondary: rgba(255, 255, 255, 0.5);
+        }
+
+        body {
+            margin: 0;
+            background: rgba(10, 10, 15, 0.75); 
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Smooth Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 10px; }
+
+        .container {
+            padding: 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Header UI */
+        header {
+            text-align: left;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Search Section */
+        .search-area {
+            position: relative;
+            margin-bottom: 50px;
+            max-width: 600px;
+            animation: fadeIn 1s ease-out 0.2s both;
+        }
+
+        #store-search {
+            width: 100%;
+            padding: 16px 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            backdrop-filter: blur(20px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #store-search:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* The App Grid */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
+            padding-bottom: 50px;
+        }
+
+        /* Beautiful App Card */
+        .app-card {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .app-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, transparent, rgba(255,255,255,0.05));
+            pointer-events: none;
+        }
+
+        .app-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+        .app-card h3{
+            color: white;
+        }
+        .app-card img {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .app-card:hover img { transform: rotate(-5px) scale(1.1); }
+
+        .app-card h3 { margin: 10px 0 5px 0; font-size: 1.2rem; font-weight: 700; }
+        .app-card p { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 25px; }
+
+        /* Installation Button */
+        .btn-install {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: black;
+            border: none;
+            border-radius: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-install:hover {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 5px 15px var(--accent-glow);
+        }
+
+        .btn-install.installed {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            cursor: default;
+        }
+
+        /* Animations */
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            .app-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Hexagon Store</h1>
+    </header>
+
+    <div class="search-area">
+        <input type="text" id="store-search" placeholder="Discover your next app..." oninput="filterApps()">
+    </div>
+
+    <div class="app-grid" id="app-display">
+        </div>
+</div>
+
+<script src="app-list.js"></script>
+<script>
+    const display = document.getElementById('app-display');
+    const searchInput = document.getElementById('store-search');
+
+    if (!localStorage.getItem('apps')) {
+        localStorage.setItem('apps', JSON.stringify([]));
+    }
+
+    function renderApps(filter = "") {
+        const installedApps = JSON.parse(localStorage.getItem('apps'));
+        display.innerHTML = '';
+
+        const filteredList = appStore.filter(app => 
+            app.name.toLowerCase().includes(filter.toLowerCase())
+        );
+
+        filteredList.forEach((app, index) => {
+            const isInstalled = installedApps.some(a => a.name === app.name);
+            const card = document.createElement('div');
+            card.className = 'app-card';
+            // Staggered entry animation
+            card.style.animation = `slideDown 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) ${index * 0.05}s both`;
+            
+            card.innerHTML = `
+                <img src="${app.icon}">
+                <h3>${app.name}</h3>
+                <p>Version ${app.version} • ${app.publish}</p>
+                <button class="btn-install ${isInstalled ? 'installed' : ''}" 
+                        onclick="installApp('${app.name}')">
+                    ${isInstalled ? 'Installed' : 'Get'}
+                </button>
+            `;
+            display.appendChild(card);
+        });
+    }
+
+    function filterApps() { renderApps(searchInput.value); }
+
+    function installApp(appName) {
+        let installedApps = JSON.parse(localStorage.getItem('apps'));
+        if (installedApps.some(a => a.name === appName)) return;
+
+        const appData = appStore.find(a => a.name === appName);
+        if (appData) {
+            installedApps.push(appData);
+            localStorage.setItem('apps', JSON.stringify(installedApps));
+            
+            window.parent.postMessage({
+                type: 'PUSH_NOTIF',
+                icon: appData.icon,
+                title: 'System',
+                message: `${appName} is now on your shore.`
+            }, '*');
+
+            renderApps(searchInput.value);
+        }
+    }
+
+    window.onload = () => renderApps();
+</script>
+</body>
+</html>

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonOS | Developer Documentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #00d2ff;
+            --accent-gradient: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%);
+            --bg: #050508;
+            --surface-low: #0f1016;
+            --surface-high: #1c1e26;
+            --text-main: #eef2f7;
+            --text-dim: #94a3b8;
+            --code-bg: #000000;
+            --border: rgba(255, 255, 255, 0.08);
+        }
+
+        * { box-sizing: border-box; scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            display: flex;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Navigation */
+        nav {
+            width: 280px;
+            height: 100vh;
+            background: var(--surface-low);
+            padding: 40px 20px;
+            position: fixed;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .nav-brand {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+        }
+
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        nav a:hover {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--accent);
+        }
+
+        /* Main Content Area */
+.content {
+    margin-left: 280px; /* Sidebar width */
+    padding: 60px 5%;
+    /* The fix: Subtract the sidebar width from the total width */
+    width: calc(100% - 280px); 
+    max-width: 1200px;
+    box-sizing: border-box; /* Ensures padding doesn't add to width */
+}
+
+        section { margin-bottom: 80px; }
+
+        h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 800; margin-bottom: 15px; }
+        h2 { font-size: 24px; color: var(--accent); margin-top: 0; margin-bottom: 20px; }
+        p { color: var(--text-dim); font-size: 16px; margin-bottom: 25px; }
+
+        /* Feature Grid */
+        .rule-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+            margin: 30px 0; 
+        }
+
+        .rule-card {
+            background: var(--surface-high);
+            padding: 25px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            height: 100%;
+        }
+
+        /* Code Block Styling */
+pre {
+    background: var(--code-bg);
+    padding: 20px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    color: #d1d1d1;
+    overflow-x: auto; /* Adds internal scrollbar for long code lines */
+    max-width: 100%;  /* Prevents code from stretching the container */
+    margin: 20px 0;
+    line-height: 1.5;
+}
+
+        code { color: var(--accent); }
+
+        .tag-blue { color: #569cd6; }
+        .tag-yellow { color: #dcdcaa; }
+        .tag-green { color: #6a9955; }
+
+        /* --- MOBILE MEDIA QUERIES --- */
+        @media (max-width: 1024px) {
+            nav {
+                width: 220px;
+            }
+            .content {
+                margin-left: 220px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            nav {
+                position: relative;
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                padding: 20px;
+                flex-direction: row;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            .nav-brand {
+                margin-bottom: 0;
+                margin-right: 20px;
+                font-size: 20px;
+            }
+            .content {
+                margin-left: 0;
+                padding: 40px 20px;
+            }
+            .rule-grid {
+                grid-template-columns: 1fr;
+            }
+            pre {
+                font-size: 12px;
+                padding: 15px;
+            }
+        }
+.floating-symbol {
+    position: fixed;
+    top: 15px;              /* adjust as you like */
+    right: 20px;            /* space from right edge */
+    z-index: 9999;          /* way above everything else */
+    font-size: 28px;        /* main symbol size */
+    color: var(--accent);   /* or whatever glowy color you want */
+    pointer-events: none;   /* so it doesn't block clicks */
+    user-select: none;
+}
+    </style>
+</head>
+<body>
+    <nav>
+        <div id="hexagon-badge" class="nav-brand" style="margin-left: 10px;">
+    HexagonOS<span style="font-size: 15px; vertical-align: super; margin-left: 2px;">✦</span> 
+</div>
+        <a href="#intro">Introduction</a>
+        <a href="#rules">Core Rules</a>
+        <a href="#building-apps">Building Apps</a>
+        <a href="#json">App Manifest</a>
+        <a href="#notifs">Notifications</a>
+        <a href="#services">Background Services</a>
+        <a href="#widgets">Desktop Widgets</a>
+        <a href="#storage">System Storage</a>
+        <a href="#settings">Settings & Theming</a>
+        <a href="#windows">Opening Windows</a>
+        <a href="#submission">App Submission</a>
+    </nav>
+
+    <div class="content">
+        <section id="intro">
+            <h1>Welcome to HexagonOS Developer Nexus</h1>
+            <p>HexagonOS is a modular, web-based operating system built entirely in HTML, CSS, and JavaScript. It's designed to run in the browser, simulating a desktop environment with windows, taskbar, notifications, widgets, and more. Think of it as a sandboxed universe where apps live in iframes, communicating with the kernel via a secure bridge. No native installs—everything is web-native, lightweight, and extensible.</p>
+            
+            <p>Why build for HexagonOS? It's a playground for devs to create apps that feel native but are pure web tech. Users get a seamless experience: drag windows, minimize, multitask, and personalize. As a dev, you tap into system features like storage, services, and themes without direct DOM access—everything's mediated for security.</p>
+            
+            <div class="rule-grid">
+                <div class="rule-card">
+                    <h3>What You'll Learn Here</h3>
+                    <p style="font-size: 14px;">From zero to hero: Start with basics, build a full app, integrate with system APIs, and submit to the app store. No prior OS dev experience needed—just web skills.</p>
+                </div>
+                <div class="rule-card">
+                    <h3>Key Philosophy</h3>
+                    <p style="font-size: 14px;">Modular, secure, and user-first. Apps are isolated, storage is distributed to avoid limits, and everything persists via localStorage.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="rules">
+            <h2>Core Rules & Architecture</h2>
+            <p>HexagonOS enforces isolation for stability. Your app runs in an iframe, so you can't touch the host DOM directly. Use the <code>postMessage</code> bridge for all system interactions. This keeps things secure and prevents crashes.</p>
+            
+            <div class="rule-grid">
+                <div class="rule-card">
+                    <h3>Secure Environment</h3>
+                    <p style="font-size: 14px;">Apps are containerized in iframes. No global scripts or styles leak out. Test in isolation, then integrate via bridge.</p>
+                </div>
+                <div class="rule-card">
+                    <h3>Kernel Bridge</h3>
+                    <p style="font-size: 14px;">All requests (e.g., notifications, services) go through <code>window.parent.postMessage({...}, '*')</code>. The kernel handles them.</p>
+                </div>
+                <div class="rule-card">
+                    <h3>Persistence</h3>
+                    <p style="font-size: 14px;">Use localStorage for data. System keys like "system-storage" are shared—respect them to avoid conflicts.</p>
+                </div>
+            </div>
+            
+            <p>Pro Tip: Debug with console.log in your app. The host console shows kernel logs for bridge events.</p>
+        </section>
+
+        <section id="building-apps">
+            <h2>Building Your First App</h2>
+            <p>Apps are simple: an HTML file with JS/CSS. Host it on Netlify or GitHub Pages for easy integration. Steps:</p>
+            
+            <ol>
+                <li>Create index.html with your UI/logic.</li>
+                <li>Add a manifest JSON (see below).</li>
+                <li>Use postMessage for system features.</li>
+                <li>Test locally: Open HexagonOS, add your app via store or manual manifest.</li>
+                <li>Handle lifecycle: Apps can minimize, maximize, close—your code should save state.</li>
+            </ol>
+            
+            <p>Example: A simple counter app.</p>
+            <pre>
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Counter App&lt;/title&gt;
+    &lt;style&gt; body { background: #000; color: #fff; } &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Counter: &lt;span id="count"&gt;0&lt;/span&gt;&lt;/h1&gt;
+    &lt;button onclick="increment()"&gt;+&lt;/button&gt;
+    &lt;script&gt;
+        let count = 0;
+        function increment() {
+            count++;
+            document.getElementById('count').textContent = count;
+            // Notify system
+            window.parent.postMessage({
+                type: 'PUSH_NOTIF',
+                icon: 'assets/counter-icon.png',
+                title: 'Counter',
+                message: `Count hit ${count}!`
+            }, '*');
+        }
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+            
+            <p>This app increments a counter and sends a notification. Expand with storage, services, etc.</p>
+        </section>
+
+        <section id="json">
+            <h2>App Manifest (JSON)</h2>
+            <p>The manifest registers your app with the kernel. It's a JSON object defining name, icon, URL, size, etc. System apps are hardcoded, but user apps go in localStorage "apps".</p>
+            <pre>
+{
+  <span class="tag-blue">"name"</span>: "My App",
+  <span class="tag-blue">"icon"</span>: "assets/icon.png",
+  <span class="tag-blue">"url"</span>: "apps/my-app/index.html",
+  <span class="tag-blue">"width"</span>: "600px",
+  <span class="tag-blue">"height"</span>: "400px",
+  <span class="tag-blue">"resizable"</span>: "true",
+  <span class="tag-blue">"publish"</span>: "com.mydev.app",
+  <span class="tag-blue">"version"</span>: "1.0.0",
+  <span class="tag-blue">"top"</span>: "100px",
+  <span class="tag-blue">"left"</span>: "100px"
+  <span class="tag-blue">"file_support"</span>: ["text","html"]
+}</pre>
+            <p>Fields explained:</p>
+            <ul>
+                <li><code>name</code>: Display name.</li>
+                <li><code>icon</code>: URL to 40x40 PNG.</li>
+                <li><code>url</code>: Entry HTML (local or remote).</li>
+                <li><code>width/height</code>: Initial size.</li>
+                <li><code>resizable</code>: "true" for maximize button.</li>
+                <li><code>publish</code>: Unique publisher ID.</li>
+                <li><code>version</code>: Semantic version.</li>
+                <li><code>top/left</code>: Initial position.</li>
+            </ul>
+            <p>To install: Kernel adds to localStorage on store download.</p>
+        </section>
+
+        <section id="notifs">
+            <h2>Sending Notifications</h2>
+            <p>Push global toasts via bridge. They appear on taskbar and log in center.</p>
+            <pre>
+window.parent.postMessage({
+    <span class="tag-blue">type</span>: <span class="tag-yellow">'PUSH_NOTIF'</span>,
+    <span class="tag-blue">icon</span>: <span class="tag-yellow">'assets/alert.png'</span>,
+    <span class="tag-blue">title</span>: <span class="tag-yellow">'My App'</span>,
+    <span class="tag-blue">message</span>: <span class="tag-yellow">'Task done!'</span>
+}, <span class="tag-yellow">'*'</span>);</pre>
+            <p>Icons: Use PNG URLs. Silent apps (e.g., system) skip toasts.</p>
+        </section>
+
+        <section id="services">
+            <h2>Background Services</h2>
+            <p>Run persistent code even when app is closed. Kernel runs as setInterval.</p>
+            <pre>
+window.parent.postMessage({
+    <span class="tag-blue">type</span>: <span class="tag-yellow">'PUSH_SERVICE'</span>,
+    <span class="tag-blue">name</span>: <span class="tag-yellow">'MyService'</span>,
+    <span class="tag-blue">icon</span>: <span class="tag-yellow">'assets/service.png'</span>,
+    <span class="tag-blue">code</span>: <span class="tag-yellow">'console.log("Tick");'</span>,
+    <span class="tag-blue">interval</span>: <span class="tag-yellow">60000</span>  // ms
+}, <span class="tag-yellow">'*'</span>);</pre>
+            <p>Services persist in localStorage "system-external-services". No duplicates—kernel checks.</p>
+        </section>
+
+        <section id="widgets">
+<h2>Desktop Widgets</h2>
+            <p>Widgets are injected directly into the desktop layer. For performance and scalability, use the <strong>Registry System</strong>. The widget metadata (position, ID) should be stored in <code>system-widgets</code>, while the actual code implementation lives in its own dedicated key.</p>
+            
+            <pre>
+window.parent.postMessage({
+    <span class="tag-blue">type</span>: <span class="tag-yellow">'PUSH_WIDGET'</span>,
+    <span class="tag-blue">id</span>: <span class="tag-yellow">'clock-widget'</span>,
+    <span class="tag-blue">version</span>: <span class="tag-yellow">'1.4v'</span>,
+    <span class="tag-blue">html</span>: <span class="tag-yellow">'&lt;div id="clock"&gt;...&lt;/div&gt;&lt;script&gt;...&lt;/script&gt;'</span>,
+    <span class="tag-blue">w</span>: <span class="tag-yellow">'150px'</span>, <span class="tag-blue">h</span>: <span class="tag-yellow">'80px'</span>,
+    <span class="tag-blue">x</span>: <span class="tag-yellow">'20px'</span>, <span class="tag-blue">y</span>: <span class="tag-yellow">'20px'</span>
+}, <span class="tag-yellow">'*'</span>);</pre>
+            <p><strong>Note:</strong> When the system boots, it re-hydrates widgets by executing the stored script tags. Ensure your widget logic is self-contained.</p>
+        </section>
+
+        <section id="storage">
+            <h2>Advanced Storage: Sharding Architecture</h2>
+            <p>To bypass the browser's 5MB <code>localStorage</code> limit, HexagonOS uses a <strong>Distributed File System</strong>. Developers must understand the split between the "Map" and the "Data".</p>
+            
+            
+            
+            <div class="rule-grid">
+                <div class="rule-card">
+                    <h3>The Tree (Map)</h3>
+                    <p style="font-size: 14px;">Stored in <code>system-storage</code>. This is a lightweight JSON array representing the folder hierarchy only. It does <strong>not</strong> contain file content.</p>
+                </div>
+                <div class="rule-card">
+                    <h3>The Shards (Files)</h3>
+                    <p style="font-size: 14px;">Each folder name becomes its own <code>localStorage</code> key. That key contains an array of file objects: <code>{name, type, content}</code>.</p>
+                </div>
+            </div>
+
+            <h3>How to Read a File:</h3>
+            <ol>
+                <li>Find the folder name in the <code>system-storage</code> tree.</li>
+                <li>Fetch the data using <code>localStorage.getItem(folderName)</code>.</li>
+                <li>Parse the JSON and find your file by <code>name</code>.</li>
+            </ol>
+
+            <pre>
+// Example: Reading 'hello.txt' from folder 'my-docs'
+const folderData = JSON.parse(localStorage.getItem('my-docs'));
+const file = folderData.find(f => f.name === 'hello.txt');
+console.log(file.content);</pre>
+            
+            <p><strong>Pro-Tip:</strong> Always check if <code>localStorage</code> is full before writing. Large apps should clean up their own shards to keep the OS snappy.</p>        
+</section>
+
+        <section id="storage">
+            <h2>System Storage & Filesystem</h2>
+            <p>Distributed storage to bypass 5MB/key limit. "system-storage" is the tree map; folders are keys holding files.</p>
+            <p>Format: Array of nested objects for hierarchy.</p>
+            <pre>
+Initial:
+[
+  {
+    "vs-code": []
+  }
+]
+
+With subfolders:
+[
+  {
+    "vs-code": [
+      { "project-01": [] },
+      { "project-02": [] }
+    ]
+  }
+]</pre>
+            <p>Files in folder keys: e.g., localStorage["project-01"] = JSON.stringify([{name: "file.txt", content: "..."}])</p>
+            <p>Access: Traverse tree, read/write via localStorage.getItem/setItem. Apps like VS Code use this—build similar for photo editors, etc.</p>
+        </section>
+
+        <section id="settings">
+            <h2>Accessing Settings, Themes & Wallpapers</h2>
+            <p>Settings in localStorage "system-settings" (accent, bg, blur). Wallpapers in "system-wallpaper" (url, list, duration).</p>
+            <pre>
+// Read theme
+let settings = JSON.parse(localStorage.getItem("system-settings")) || {};
+document.body.style.background = settings.windowBg;
+
+// Update wallpaper
+localStorage.setItem("system-wallpaper", JSON.stringify({
+  url: "new.jpg",
+  wallpaper-list: ["img1.jpg", "img2.jpg"],
+  duration: 60  // minutes
+}));</pre>
+            <p>Push updates via bridge if needed: type 'UPDATE_SETTING', key/value. Kernel applies globally.</p>
+        </section>
+
+        <section id="windows">
+            <h2>Opening Windows & Apps</h2>
+            <p>Request new windows via bridge. Kernel spawns them.</p>
+            <pre>
+window.parent.postMessage({
+    <span class="tag-blue">type</span>: <span class="tag-yellow">'OPEN_WINDOW'</span>,
+    <span class="tag-blue">icon</span>: <span class="tag-yellow">'assets/icon.png'</span>,
+    <span class="tag-blue">title</span>: <span class="tag-yellow">'Sub Window'</span>,
+    <span class="tag-blue">url</span>: <span class="tag-yellow">'sub.html'</span>,
+    <span class="tag-blue">width</span>: <span class="tag-yellow">'400px'</span>,
+    <span class="tag-blue">height</span>: <span class="tag-yellow">'300px'</span>,
+    <span class="tag-blue">resizable</span>: <span class="tag-yellow">'true'</span>,
+    <span class="tag-blue">top</span>: <span class="tag-yellow">'200px'</span>,
+    <span class="tag-blue">left</span>: <span class="tag-yellow">'200px'</span>
+}, <span class="tag-yellow">'*'</span>);</pre>
+            <p>Use for modals or spawning from services. Kernel handles focus, drag, etc.</p>
+        </section>
+
+        <section id="submission">
+            <h2>Submitting to App Store</h2>
+            <p>Build, test, create manifest JSON. Send to Shino: JSON file + app URL/icon. We'll review/add to store.</p>
+            <p>Requirements:</p>
+            <ul>
+                <li>Secure: No malicious code.</li>
+                <li>Compatible: Use bridge properly.</li>
+                <li>Unique: No duplicates.</li>
+                <li>Versioned: Bump on updates.</li>
+            </ul>
+            <p>Email or DM manifest. Once in store, users install via Web Store app.</p>
+        
+        
+        </section>
+
+        <section>
+            
+        </section>
+        
+        <p style="margin-top:100px; opacity:0.3; font-style:italic;">Official Documentation for HexagonOS Core</p>
+    
+    
+    
+    </div>
+
+    
+</body>
+</html>

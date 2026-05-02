@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --accent: #3498db;
+            --sidebar-glass: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #ecf0f1;
+            --text-dim: rgba(236, 240, 241, 0.6);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar - Glass Effect */
+        #sidebar {
+            width: 280px;
+            background: var(--sidebar-glass);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 25px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-header span {
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        #note-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 0 10px 10px 10px;
+        }
+
+        /* Custom Scrollbar */
+        #note-list::-webkit-scrollbar { width: 4px; }
+        #note-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        .note-item {
+            padding: 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            border: 1px solid transparent;
+        }
+
+        .note-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+        }
+
+        .note-item.active {
+            background: rgba(52, 152, 219, 0.15);
+            border: 1px solid rgba(52, 152, 219, 0.3);
+            color: white;
+        }
+
+        /* Editor Area */
+        #editor {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            background: radial-gradient(circle at top right, rgba(52, 152, 219, 0.05), transparent);
+        }
+
+        .editor-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        #note-title {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
+            outline: none;
+            width: 70%;
+        }
+
+        #note-content {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-size: 18px;
+            flex-grow: 1;
+            resize: none;
+            outline: none;
+            line-height: 1.8;
+        }
+
+        /* Buttons */
+        .btn-add {
+            background: var(--accent);
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-delete {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .btn-delete:hover {
+            background: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <div class="sidebar-header">
+        <span>Vault</span>
+        <button class="btn-add" onclick="createNewNote()">+</button>
+    </div>
+    <div id="note-list"></div>
+</div>
+
+<div id="editor">
+    <div class="editor-top">
+        <input type="text" id="note-title" placeholder="Untitled" oninput="saveCurrentNote()">
+        <button class="btn-delete" onclick="deleteCurrentNote()">Delete Note</button>
+    </div>
+    <textarea id="note-content" placeholder="Begin your story..." oninput="saveCurrentNote()"></textarea>
+</div>
+
+<script>
+    // [The JavaScript logic remains the same as our previous version]
+    let notes = JSON.parse(localStorage.getItem('webos_notes_v2')) || [];
+    let currentNoteId = null;
+
+    function renderNoteList() {
+        const list = document.getElementById('note-list');
+        list.innerHTML = '';
+        notes.forEach(note => {
+            const div = document.createElement('div');
+            div.className = `note-item ${note.id === currentNoteId ? 'active' : ''}`;
+            div.textContent = note.title || "Untitled Note";
+            div.onclick = () => loadNote(note.id);
+            list.appendChild(div);
+        });
+    }
+
+    function createNewNote() {
+        const newNote = { id: Date.now().toString(), title: "", content: "" };
+        notes.unshift(newNote);
+        currentNoteId = newNote.id;
+        saveToStorage();
+        renderNoteList();
+        loadNote(newNote.id);
+    }
+
+    function loadNote(id) {
+        currentNoteId = id;
+        const note = notes.find(n => n.id === id);
+        document.getElementById('note-title').value = note.title;
+        document.getElementById('note-content').value = note.content;
+        renderNoteList();
+    }
+
+    function saveCurrentNote() {
+        if (!currentNoteId) return;
+        const note = notes.find(n => n.id === currentNoteId);
+        note.title = document.getElementById('note-title').value;
+        note.content = document.getElementById('note-content').value;
+        saveToStorage();
+        const activeItem = document.querySelector('.note-item.active');
+        if (activeItem) activeItem.textContent = note.title || "Untitled Note";
+    }
+
+    function deleteCurrentNote() {
+        if (!currentNoteId) return;
+        notes = notes.filter(n => n.id !== currentNoteId);
+        currentNoteId = notes.length > 0 ? notes[0].id : null;
+        saveToStorage();
+        if (currentNoteId) loadNote(currentNoteId);
+        else {
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-content').value = '';
+        }
+        renderNoteList();
+        window.parent.postMessage({ type: 'PUSH_NOTIF', icon: 'https://img.icons8.com/ios-filled/50/ffffff/trash.png', title: 'Shore Notes', message: 'Note moved to the void.' }, '*');
+    }
+
+    function saveToStorage() { localStorage.setItem('webos_notes_v2', JSON.stringify(notes)); }
+
+    if (notes.length > 0) loadNote(notes[0].id);
+    else createNewNote();
+</script>
+</body>
+</html>

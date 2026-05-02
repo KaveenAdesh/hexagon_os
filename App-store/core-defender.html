@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        :root { --accent: #00d2ff; --bg: #05050a; }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        canvas { background: #080812; box-shadow: 0 0 50px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); cursor: crosshair; }
+        
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; box-sizing: border-box; }
+        .stats { font-size: 18px; font-weight: bold; text-shadow: 0 0 10px var(--accent); }
+        
+        #menu { position: absolute; background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; border: 1px solid var(--accent); text-align: center; pointer-events: auto; backdrop-filter: blur(10px); }
+        input { background: rgba(255,255,255,0.1); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 5px; margin: 10px 0; outline: none; text-align: center; }
+        button { background: var(--accent); border: none; padding: 10px 30px; border-radius: 20px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--accent); }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="ui-layer">
+    <div class="stats" id="scoreBoard">Score: 0 | Level: 1</div>
+    <div class="stats" id="bestScoreBoard" style="font-size: 14px; opacity: 0.7;">Best: 0</div>
+</div>
+
+<div id="menu">
+    <h1 style="color: var(--accent); margin-top:0;">CORE DEFENDER</h1>
+    <p>Enter your name to start:</p>
+    <input type="text" id="playerName" placeholder="Pilot Name" maxlength="10"><br>
+    <button onclick="startGame()">LAUNCH</button>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 850;
+    canvas.height = 600;
+
+    let gameActive = false;
+    let score = 0;
+    let level = 1;
+    let enemies = [];
+    let particles = [];
+    let playerName = "";
+
+    const core = { x: canvas.width/2, y: canvas.height/2, radius: 30, hp: 100 };
+
+    function startGame() {
+        playerName = document.getElementById('playerName').value || "Guest";
+        document.getElementById('menu').style.display = 'none';
+        gameActive = true;
+        score = 0;
+        level = 1;
+        enemies = [];
+        core.hp = 100;
+        updateBest();
+        animate();
+    }
+
+    function spawnEnemy() {
+        if(!gameActive) return;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = canvas.width;
+        enemies.push({
+            x: core.x + Math.cos(angle) * dist,
+            y: core.y + Math.sin(angle) * dist,
+            speed: (Math.random() * 1.5 + 0.5) * (1 + level * 0.1),
+            radius: 10 + Math.random() * 10
+        });
+        setTimeout(spawnEnemy, 2000 / (1 + level * 0.2));
+    }
+
+    function createExplosion(x, y, color) {
+        for(let i=0; i<10; i++) {
+            particles.push({ x, y, dx: (Math.random()-0.5)*5, dy: (Math.random()-0.5)*5, life: 1, color });
+        }
+    }
+
+    canvas.addEventListener('click', (e) => {
+        if(!gameActive) return;
+        const rect = canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        
+        enemies = enemies.filter(enemy => {
+            const dist = Math.hypot(mx - enemy.x, my - enemy.y);
+            if(dist < enemy.radius + 20) {
+                score += 10;
+                createExplosion(enemy.x, enemy.y, '#ff0055');
+                if(score % 100 === 0) levelUp();
+                return false;
+            }
+            return true;
+        });
+    });
+
+    function levelUp() {
+        level++;
+        window.parent.postMessage({ type: 'PUSH_NOTIF', icon: 'https://img.icons8.com/ios-filled/50/ffffff/level-up.png', title: 'Game', message: `Level ${level} reached!` }, '*');
+    }
+
+    function updateBest() {
+        const saved = JSON.parse(localStorage.getItem('game_leaderboard')) || {score: 0, name: 'None'};
+        document.getElementById('bestScoreBoard').innerText = `Best: ${saved.score} (${saved.name})`;
+        if(score > saved.score) {
+            localStorage.setItem('game_leaderboard', JSON.stringify({score: score, name: playerName}));
+        }
+    }
+
+    function animate() {
+        if(!gameActive) return;
+        ctx.fillStyle = 'rgba(5, 5, 10, 0.2)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw Core
+        ctx.beginPath();
+        ctx.arc(core.x, core.y, core.radius, 0, Math.PI*2);
+        ctx.strokeStyle = var('--accent');
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = var('--accent');
+
+        enemies.forEach((enemy, index) => {
+            const angle = Math.atan2(core.y - enemy.y, core.x - enemy.x);
+            enemy.x += Math.cos(angle) * enemy.speed;
+            enemy.y += Math.sin(angle) * enemy.speed;
+
+            ctx.fillStyle = '#ff0055';
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.radius, 0, Math.PI*2);
+            ctx.fill();
+
+            if(Math.hypot(core.x - enemy.x, core.y - enemy.y) < core.radius) {
+                enemies.splice(index, 1);
+                core.hp -= 20;
+                createExplosion(core.x, core.y, '#fff');
+                if(core.hp <= 0) gameOver();
+            }
+        });
+
+        particles.forEach((p, i) => {
+            p.x += p.dx; p.y += p.dy; p.life -= 0.02;
+            ctx.fillStyle = `rgba(255,255,255,${p.life})`;
+            ctx.fillRect(p.x, p.y, 2, 2);
+            if(p.life <= 0) particles.splice(i, 1);
+        });
+
+        document.getElementById('scoreBoard').innerText = `Score: ${score} | Level: ${level} | Core: ${core.hp}%`;
+        requestAnimationFrame(animate);
+    }
+
+    function gameOver() {
+        gameActive = false;
+        updateBest();
+        document.getElementById('menu').style.display = 'block';
+        document.querySelector('#menu h1').innerText = "CORE BREACHED";
+        document.querySelector('#menu p').innerText = `${playerName}, your final score: ${score}`;
+    }
+
+    spawnEnemy();
+</script>
+</body>
+</html>

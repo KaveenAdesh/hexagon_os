@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hexagon Dash</title>
+    <style>
+        body { margin: 0; background: #050508; color: #00d2ff; font-family: 'Nunito', sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        canvas { border: 2px solid rgba(0, 210, 255, 0.2); border-radius: 15px; box-shadow: 0 0 30px rgba(0, 210, 255, 0.1); background: #090a0f; cursor: pointer; }
+        .stats { position: absolute; top: 20px; font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+        .hint { position: absolute; bottom: 20px; opacity: 0.5; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="stats">SCORE: <span id="score">0</span></div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="hint">CLICK OR PRESS SPACE TO JUMP</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+
+    let score = 0;
+    let gameActive = true;
+
+    const player = { x: 100, y: 300, w: 30, h: 30, dy: 0, jumpPower: -12, gravity: 0.6, grounded: false };
+    const obstacles = [];
+    let frame = 0;
+
+    function drawPlayer() {
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#00d2ff';
+        ctx.fillStyle = '#00d2ff';
+        ctx.beginPath();
+        // A hexagon shape for the player!
+        for (let i = 0; i < 6; i++) {
+            ctx.lineTo(player.x + player.w/2 + player.w/2 * Math.cos(i * Math.PI / 3), 
+                       player.y + player.h/2 + player.h/2 * Math.sin(i * Math.PI / 3));
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    function createObstacle() {
+        if (frame % 100 === 0) {
+            obstacles.push({ x: 850, y: 310, w: 20, h: 40, speed: 6 + (score/100) });
+        }
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        frame++;
+
+        // Physics
+        player.dy += player.gravity;
+        player.y += player.dy;
+
+        if (player.y > 310) {
+            player.y = 310;
+            player.dy = 0;
+            player.grounded = true;
+        }
+
+        // Draw Ground Line
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.beginPath();
+        ctx.moveTo(0, 340);
+        ctx.lineTo(800, 340);
+        ctx.stroke();
+
+        drawPlayer();
+        createObstacle();
+
+        obstacles.forEach((obs, index) => {
+            obs.x -= obs.speed;
+            ctx.fillStyle = '#ff0055';
+            ctx.shadowColor = '#ff0055';
+            ctx.shadowBlur = 10;
+            ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+            ctx.shadowBlur = 0;
+
+            // Collision
+            if (player.x < obs.x + obs.w && player.x + player.w > obs.x &&
+                player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                gameOver();
+            }
+
+            if (obs.x + obs.w < 0) {
+                obstacles.splice(index, 1);
+                score += 10;
+                scoreEl.innerText = score;
+            }
+        });
+
+        requestAnimationFrame(update);
+    }
+
+    function jump() {
+        if (player.grounded) {
+            player.dy = player.jumpPower;
+            player.grounded = false;
+        }
+        if (!gameActive) restart();
+    }
+
+    function gameOver() {
+        gameActive = false;
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0,0,800,400);
+        ctx.fillStyle = "#fff";
+        ctx.font = "30px Nunito";
+        ctx.textAlign = "center";
+        ctx.fillText("SYSTEM CRASHED", 400, 180);
+        ctx.font = "15px Nunito";
+        ctx.fillText("CLICK TO REBOOT CORE", 400, 220);
+    }
+
+    function restart() {
+        score = 0;
+        scoreEl.innerText = "0";
+        obstacles.length = 0;
+        player.y = 310;
+        gameActive = true;
+        update();
+    }
+
+    window.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
+    canvas.addEventListener('mousedown', jump);
+
+    update();
+</script>
+</body>
+</html>

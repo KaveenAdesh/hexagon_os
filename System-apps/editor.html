@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HexagonOS Viewer</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1a1a1a; }
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
+        .app-entry { animation: windowOpen 0.35s cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards; }
+        
+        @keyframes windowOpen {
+            0% { transform: scale(0.98) translateY(5px); opacity: 0; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="app-entry">
+    <div id="viewer-root" style="width:100%; height:100%;"></div>
+
+    <script type="module">
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileToOpen = urlParams.get('openedFile');
+        const folderToOpen = urlParams.get('openedFolder');
+        let blobUrlCache = null;
+
+        async function bootSequence() {
+            // HexagonOS Storage Rule: Folders are keys in localStorage
+            const folderContent = localStorage.getItem(folderToOpen);
+            
+            if (!folderContent) {
+                console.error("HexagonOS Error: Folder not found in system-storage.");
+                return;
+            }
+
+            const files = JSON.parse(folderContent);
+            const activeFile = files.find(f => f.name === fileToOpen);
+
+            if (activeFile && activeFile.type === 'html') {
+                const finalHTML = processVirtualLinks(activeFile.content, files);
+                
+                if (blobUrlCache) URL.revokeObjectURL(blobUrlCache);
+                
+                const blob = new Blob([finalHTML], { type: 'text/html' });
+                blobUrlCache = URL.createObjectURL(blob);
+
+                const root = document.getElementById('viewer-root');
+                root.innerHTML = '';
+                const viewFrame = document.createElement('iframe');
+                viewFrame.src = blobUrlCache;
+                root.appendChild(viewFrame);
+            }
+        }
+
+        function processVirtualLinks(source, folderFiles) {
+            const parser = new DOMParser();
+            const vDoc = parser.parseFromString(source, 'text/html');
+
+            vDoc.querySelectorAll('script, link, img').forEach(node => {
+                const attr = node.tagName === 'LINK' ? 'href' : 'src';
+                const resourcePath = node.getAttribute(attr);
+
+                if (resourcePath && !resourcePath.includes('://')) {
+                    const localData = folderFiles.find(f => f.name === resourcePath);
+                    if (localData) {
+                        if (node.tagName === 'SCRIPT') {
+                            node.removeAttribute('src');
+                            node.textContent = localData.content;
+                        } else if (node.tagName === 'LINK' && node.rel === 'stylesheet') {
+                            const css = document.createElement('style');
+                            css.textContent = localData.content;
+                            node.replaceWith(css);
+                        } else {
+                            node.setAttribute(attr, localData.content);
+                        }
+                    }
+                }
+            });
+
+            // Convert JSON to Global Objects
+            folderFiles.forEach(file => {
+                if (file.name.endsWith('.json')) {
+                    const script = document.createElement('script');
+                    const cleanName = file.name.replace('.json', '').replace(/\W/g, '_');
+                    script.textContent = `window["${cleanName}"] = ${file.content};`;
+                    vDoc.head.appendChild(script);
+                }
+            });
+
+            return vDoc.documentElement.outerHTML;
+        }
+
+        // Hot Reload Hook
+        window.addEventListener('storage', (e) => {
+            if (e.key === folderToOpen) bootSequence();
+        });
+
+        bootSequence();
+    </script>
+</body>
+</html>
