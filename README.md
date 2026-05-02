@@ -42,14 +42,18 @@ Engineered using a high-performance stack for maximum stability:
 
 ## 📂 Project Structure
 ```text
-├── index.html          # Main OS Entry Point
-├── help-desk.html      # User Support & Documentation
-├── css/                # Aesthetic & Layout engine
-├── js/                 
-│   ├── system.js       # Core OS Logic
-│   ├── windowMgr.js    # Window Handling
-│   └── apps/           # Integrated Web Apps
-└── assets/             # Icons and Branding
+├── App-store/          # Market interface for OS extensions
+├── System-apps/        # Core utilities and built-in applications
+├── index.html          # Main HexagonOS entry point
+├── demo.html           # Live preview/sandbox environment
+├── help-desk.html      # User support & documentation interface
+├── style.css           # Global aesthetic & layout engine
+├── script.js           # Main system initialization logic
+├── manage-windows.js   # Window handling & DOM management logic
+├── services.js         # Backend-simulation & core services
+├── variable-manager.js # State management & global variables
+├── welcome-overlay.js  # First-time user experience & onboarding
+└── system-storage.md   # File manager documentation & logs
 ```
 ---
 
